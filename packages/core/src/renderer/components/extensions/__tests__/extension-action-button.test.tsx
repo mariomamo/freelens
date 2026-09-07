@@ -21,6 +21,18 @@ describe("ExtensionActionButton", () => {
     expect(button.querySelector(".Spinner")).toBeInTheDocument();
   });
 
+  it("renders Update label for update state", () => {
+    render(<ExtensionActionButton state="update" onClick={() => {}} />);
+    expect(screen.getByRole("button", { name: "Update" })).toBeInTheDocument();
+  });
+
+  it("renders disabled with spinner for updating state", () => {
+    render(<ExtensionActionButton state="updating" onClick={() => {}} />);
+    const button = screen.getByRole("button");
+    expect(button).toBeDisabled();
+    expect(button.querySelector(".Spinner")).toBeInTheDocument();
+  });
+
   it("invokes onClick when not disabled", () => {
     const onClick = jest.fn();
     render(<ExtensionActionButton state="install" onClick={onClick} />);

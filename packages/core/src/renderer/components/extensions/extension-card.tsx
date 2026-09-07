@@ -5,6 +5,7 @@
  */
 
 import React from "react";
+import { gt } from "semver";
 import { ExtensionActionButton, type ExtensionActionState } from "./extension-action-button";
 import { ExtensionAuthors } from "./extension-authors";
 import styles from "./extension-card.module.scss";
@@ -23,9 +24,11 @@ interface MarketplaceCardProps {
   extension: MarketplaceExtension;
   installedExtension?: InstalledExtension;
   isInstalling?: boolean;
+  isUpdating?: boolean;
   isUninstalling?: boolean;
   isDisabled?: boolean;
   onInstall: () => void;
+  onUpdate: () => void;
   onUninstall: () => void;
   onDisable: () => void;
   onEnable: () => void;
@@ -44,7 +47,22 @@ interface InstalledCardProps {
 
 export type ExtensionCardProps = MarketplaceCardProps | InstalledCardProps;
 
+const hasNewerVersion = (marketplaceVersion: string, installedVersion: string): boolean =>
+  gt(marketplaceVersion, installedVersion);
+
 const deriveCtaState = (props: ExtensionCardProps): ExtensionActionState => {
+  // The update flow uninstalls the old version before installing the new one,
+  // so keep the "updating" state even when the extension is temporarily gone.
+  if (props.variant === "marketplace" && props.isUpdating) return "updating";
+
+  if (props.variant === "marketplace" && props.installedExtension) {
+    const updateAvailable = hasNewerVersion(props.extension.version, props.installedExtension.manifest.version);
+
+    if (updateAvailable) {
+      return props.isInstalling ? "updating" : "update";
+    }
+  }
+
   if (props.isInstalling) return "installing";
   if (props.isUninstalling) return "uninstalling";
   if (props.variant === "installed") return "uninstall";
@@ -71,11 +89,15 @@ export const ExtensionCard: React.FC<ExtensionCardProps> = (props) => {
   const authors = isMarketplace ? (props.extension.authors ?? []) : [];
 
   const ctaState = deriveCtaState(props);
-  const ctaHandler = isMarketplace
-    ? props.installedExtension
-      ? props.onUninstall
-      : props.onInstall
-    : props.onUninstall;
+  let ctaHandler: () => void;
+
+  if (isMarketplace && (ctaState === "update" || ctaState === "updating")) {
+    ctaHandler = props.onUpdate;
+  } else if (isMarketplace) {
+    ctaHandler = props.installedExtension ? props.onUninstall : props.onInstall;
+  } else {
+    ctaHandler = props.onUninstall;
+  }
 
   return (
     <div className={`${styles.card} ${isDisabled ? styles.disabled : ""}`} data-testid={deriveCardTestId(props)}>
@@ -88,7 +110,7 @@ export const ExtensionCard: React.FC<ExtensionCardProps> = (props) => {
       <div className={styles.metadata}>
         <div className={styles.headerRow}>
           <ExtensionStatusBadge variant={status} />
-          <ExtensionPackageTitle name={name} />
+          <ExtensionPackageTitle name={name} repository={isMarketplace ? props.extension.repository : undefined} />
         </div>
         <div className={styles.metaRow}>
           <ExtensionAuthors authors={authors} disabled={isDisabled} />
@@ -105,6 +127,7 @@ export const ExtensionCard: React.FC<ExtensionCardProps> = (props) => {
               isEnabled={installedExtension.isEnabled}
               onDisable={props.onDisable}
               onEnable={props.onEnable}
+              onUninstall={props.onUninstall}
             />
           )}
         </div>

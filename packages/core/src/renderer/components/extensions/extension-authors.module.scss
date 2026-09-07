@@ -19,6 +19,72 @@
   align-items: center;
   gap: 0.25rem;
   min-width: 0;
+  position: relative;
+}
+
+.authorTooltip {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  z-index: 60;
+  min-width: 9rem;
+  border-radius: 0.625rem;
+  background-color: rgba(12, 19, 29, 0.95);
+  border: 1px solid #1e293b;
+  padding: 0.25rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+}
+
+// invisible bridge between the author name and the tooltip so the hover never breaks
+.authorTooltip::before {
+  content: "";
+  position: absolute;
+  top: -0.5rem;
+  left: 0;
+  right: 0;
+  height: 0.5rem;
+}
+
+// droplet tail pointing at the author name
+.authorTooltip::after {
+  content: "";
+  position: absolute;
+  top: -0.25rem;
+  left: 1.25rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  background-color: #0c131d;
+  border-left: 1px solid #1e293b;
+  border-top: 1px solid #1e293b;
+  transform: rotate(45deg);
+}
+
+.tooltipRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  border: none;
+  border-radius: 0.375rem;
+  background: none;
+  color: #e2e8f0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+}
+
+.tooltipRow:hover {
+  background-color: rgba(30, 41, 59, 0.8);
+}
+
+.tooltipIcon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  color: #94a3b8;
 }
 
 .avatar {

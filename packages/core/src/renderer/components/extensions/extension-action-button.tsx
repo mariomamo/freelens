@@ -2,7 +2,7 @@ import { Spinner } from "@freelensapp/spinner";
 import React from "react";
 import styles from "./extension-action-button.module.scss";
 
-export type ExtensionActionState = "install" | "uninstall" | "installing" | "uninstalling";
+export type ExtensionActionState = "install" | "uninstall" | "installing" | "uninstalling" | "update" | "updating";
 
 export interface ExtensionActionButtonProps {
   state: ExtensionActionState;
@@ -17,6 +17,9 @@ const labelFor = (state: ExtensionActionState): string => {
     case "uninstall":
     case "uninstalling":
       return "Uninstall";
+    case "update":
+    case "updating":
+      return "Update";
   }
 };
 
@@ -25,6 +28,9 @@ const variantClassFor = (state: ExtensionActionState): string => {
     case "install":
     case "installing":
       return styles.install;
+    case "update":
+    case "updating":
+      return styles.update;
     case "uninstall":
     case "uninstalling":
       return styles.uninstall;
@@ -32,7 +38,7 @@ const variantClassFor = (state: ExtensionActionState): string => {
 };
 
 export const ExtensionActionButton: React.FC<ExtensionActionButtonProps> = ({ state, onClick }) => {
-  const isSpinnerState = state === "installing" || state === "uninstalling";
+  const isSpinnerState = state === "installing" || state === "uninstalling" || state === "updating";
 
   return (
     <button

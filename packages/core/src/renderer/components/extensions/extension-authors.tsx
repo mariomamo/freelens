@@ -1,9 +1,13 @@
 import { Icon } from "@freelensapp/icon";
-import React, { Fragment, useCallback, useState } from "react";
-import { authorKey, avatarClassFor, fullNameOf, initialsOf } from "./extension-author-helpers";
+import { withInjectables } from "@ogre-tools/injectable-react";
+import React, { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import openLinkInBrowserInjectable from "../../../common/utils/open-link-in-browser.injectable";
+import { authorKey, avatarClassFor, fullNameOf, initialsOf, toHttpUrl } from "./extension-author-helpers";
 import styles from "./extension-authors.module.scss";
 import { ExtensionCollaboratorsPopover } from "./extension-collaborators-popover";
+import { GithubIcon } from "./github-icon";
 
+import type { OpenLinkInBrowser } from "../../../common/utils/open-link-in-browser.injectable";
 import type { MarketplaceExtensionAuthor } from "./marketplace-extensions/marketplace-extensions.injectable";
 
 export interface ExtensionAuthorsProps {
@@ -11,18 +15,92 @@ export interface ExtensionAuthorsProps {
   disabled?: boolean;
 }
 
-const AuthorItem: React.FC<{ author: MarketplaceExtensionAuthor; disabled?: boolean }> = ({ author, disabled }) => (
-  <span className={styles.authorItem}>
-    <span
-      className={`${styles.avatar} ${styles[avatarClassFor(author.name)]} ${disabled ? styles.avatarDisabled : ""}`}
-    >
-      {initialsOf(author)}
-    </span>
-    <span className={`${styles.authorName} ${disabled ? styles.nameDisabled : ""}`}>{fullNameOf(author)}</span>
-  </span>
-);
+interface Dependencies {
+  openLinkInBrowser: OpenLinkInBrowser;
+}
 
-export const ExtensionAuthors: React.FC<ExtensionAuthorsProps> = ({ authors, disabled }) => {
+const hasLinks = (author: MarketplaceExtensionAuthor): boolean => Boolean(author.github || author.website);
+
+const AuthorLinksTooltip: React.FC<{ author: MarketplaceExtensionAuthor; openLinkInBrowser: OpenLinkInBrowser }> = ({
+  author,
+  openLinkInBrowser,
+}) => {
+  if (!hasLinks(author)) return null;
+
+  return (
+    <div className={styles.authorTooltip} data-testid="author-links-tooltip">
+      {author.github && (
+        <button
+          type="button"
+          className={styles.tooltipRow}
+          onClick={() => void openLinkInBrowser(toHttpUrl(author.github!))}
+        >
+          <GithubIcon className={styles.tooltipIcon} />
+          <span>github</span>
+        </button>
+      )}
+      {author.website && (
+        <button
+          type="button"
+          className={styles.tooltipRow}
+          onClick={() => void openLinkInBrowser(toHttpUrl(author.website!))}
+        >
+          <Icon material="language" className={styles.tooltipIcon} />
+          <span>website</span>
+        </button>
+      )}
+    </div>
+  );
+};
+
+const AuthorItem: React.FC<{
+  author: MarketplaceExtensionAuthor;
+  disabled?: boolean;
+  openLinkInBrowser: OpenLinkInBrowser;
+}> = ({ author, disabled, openLinkInBrowser }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    return () => clearTimeout(hideTimeoutRef.current);
+  }, []);
+
+  const handleMouseEnter = () => {
+    clearTimeout(hideTimeoutRef.current);
+
+    if (!disabled && hasLinks(author)) {
+      setIsHovered(true);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    // keep the tooltip open briefly so the mouse has time to reach it
+    hideTimeoutRef.current = setTimeout(() => setIsHovered(false), 60);
+  };
+
+  return (
+    <span
+      className={styles.authorItem}
+      data-testid="author-item"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <span
+        className={`${styles.avatar} ${styles[avatarClassFor(author.name)]} ${disabled ? styles.avatarDisabled : ""}`}
+      >
+        {initialsOf(author)}
+      </span>
+      <span className={`${styles.authorName} ${disabled ? styles.nameDisabled : ""}`}>{fullNameOf(author)}</span>
+      {isHovered && <AuthorLinksTooltip author={author} openLinkInBrowser={openLinkInBrowser} />}
+    </span>
+  );
+};
+
+const NonInjectedExtensionAuthors = ({
+  authors,
+  disabled,
+  openLinkInBrowser,
+}: ExtensionAuthorsProps & Dependencies) => {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
   const handleDismiss = useCallback(() => setIsPopoverOpen(false), []);
@@ -38,7 +116,7 @@ export const ExtensionAuthors: React.FC<ExtensionAuthorsProps> = ({ authors, dis
       <span className={styles.prefix}>by</span>
       {visible.map((a, index) => (
         <Fragment key={authorKey(a)}>
-          <AuthorItem author={a} disabled={disabled} />
+          <AuthorItem author={a} disabled={disabled} openLinkInBrowser={openLinkInBrowser} />
           {(index < visible.length - 1 || remaining > 0) && <span className={styles.separator}>,</span>}
         </Fragment>
       ))}
@@ -64,3 +142,10 @@ export const ExtensionAuthors: React.FC<ExtensionAuthorsProps> = ({ authors, dis
     </div>
   );
 };
+
+export const ExtensionAuthors = withInjectables<Dependencies, ExtensionAuthorsProps>(NonInjectedExtensionAuthors, {
+  getProps: (di, props) => ({
+    ...props,
+    openLinkInBrowser: di.inject(openLinkInBrowserInjectable),
+  }),
+});

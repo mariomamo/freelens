@@ -55,8 +55,23 @@ interface Dependencies {
   installOnDrop: InstallOnDrop;
 }
 
+type ExtensionsTab = "installed" | "marketplace";
+
+const extensionsActiveTabStorageKey = "extensions-active-tab";
+
+const readStoredActiveTab = (): ExtensionsTab => {
+  const stored = localStorage.getItem(extensionsActiveTabStorageKey);
+
+  return stored === "marketplace" ? "marketplace" : "installed";
+};
+
 const NonInjectedExtensions = ({ installOnDrop }: Dependencies) => {
-  const [activeTab, setActiveTab] = useState<"installed" | "marketplace">("installed");
+  const [activeTab, setActiveTab] = useState<ExtensionsTab>(readStoredActiveTab);
+
+  const changeTab = (tab: ExtensionsTab) => {
+    localStorage.setItem(extensionsActiveTabStorageKey, tab);
+    setActiveTab(tab);
+  };
 
   return (
     <DropFileInput onDropFiles={installOnDrop}>
@@ -67,7 +82,7 @@ const NonInjectedExtensions = ({ installOnDrop }: Dependencies) => {
           <ExtensionInstall />
           <Gutter size="md" />
 
-          <ExtensionTabs activeTab={activeTab} onTabChange={setActiveTab} />
+          <ExtensionTabs activeTab={activeTab} onTabChange={changeTab} />
           {activeTab === "installed" ? <InstalledExtensions /> : <MarketplaceExtensions />}
         </section>
       </SettingLayout>

@@ -28,6 +28,7 @@ interface MarketplaceExtensionEntry {
   description: string;
   version: string;
   status: MarketplaceExtensionStatus;
+  repository?: string;
   authors?: MarketplaceAuthor[];
 }
 
@@ -74,6 +75,7 @@ const toMarketplaceExtension = ({
   description,
   version,
   status,
+  repository,
   authors,
 }: MarketplaceExtensionEntry): MarketplaceExtension => {
   const parsedAuthors: MarketplaceExtensionAuthor[] | undefined = Array.isArray(authors)
@@ -93,6 +95,7 @@ const toMarketplaceExtension = ({
     description,
     version,
     status,
+    ...(repository !== undefined ? { repository } : {}),
     ...(parsedAuthors !== undefined ? { authors: parsedAuthors } : {}),
   };
 };

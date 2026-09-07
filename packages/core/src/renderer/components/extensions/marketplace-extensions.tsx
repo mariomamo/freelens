@@ -5,7 +5,9 @@
  */
 
 import { Icon } from "@freelensapp/icon";
+import { Spinner } from "@freelensapp/spinner";
 import { withInjectables } from "@ogre-tools/injectable-react";
+import { when } from "mobx";
 import { observer } from "mobx-react";
 import React, { useMemo, useState } from "react";
 import extensionInstallationStateStoreInjectable from "../../../extensions/extension-installation-state-store/extension-installation-state-store.injectable";
@@ -19,8 +21,11 @@ import marketplaceExtensionsInjectable from "./marketplace-extensions/marketplac
 import styles from "./marketplace-extensions.module.scss";
 import {
   clearMarketplaceInstalling,
+  clearMarketplaceUpdating,
   isMarketplaceInstalling,
+  isMarketplaceUpdating,
   markMarketplaceInstalling,
+  markMarketplaceUpdating,
 } from "./marketplace-installing-store";
 import { SearchBar } from "./search-bar";
 import installedExtensionsByNameInjectable from "./user-extensions/installed-extensions-by-name.injectable";
@@ -80,6 +85,29 @@ const NonInjectedMarketplaceExtensions = observer(
       });
     };
 
+    const onUpdate = (ext: MarketplaceExtension) => {
+      const key = withKey(ext);
+      markMarketplaceUpdating(key);
+
+      // The update flow uninstalls the old version before installing the new one,
+      // so the extension briefly disappears from the installed list.
+      // Keep the "updating" state until the extension is installed again at the target version.
+      void installExtensionFromInput(`${ext.name}@${ext.version}`)
+        .then(() =>
+          when(
+            () => {
+              const installed = installedExtensionsByName.get().get(ext.name);
+
+              return installed?.manifest.version === ext.version;
+            },
+            { timeout: 30_000 },
+          ).catch(() => undefined),
+        )
+        .finally(() => {
+          clearMarketplaceUpdating(key);
+        });
+    };
+
     const onUninstall = (installed: InstalledExtension) => {
       void confirmUninstallExtension(installed);
     };
@@ -87,9 +115,12 @@ const NonInjectedMarketplaceExtensions = observer(
     if (marketplaceExtensions.pending.get()) {
       return (
         <section data-testid="marketplace-extensions">
-          <div className="flex items-center justify-center py-8">
-            <Icon material="extension" className={styles.iconLarge} />
-            <p className={styles.emptyText}>Loading extensions…</p>
+          <div className={styles.loadingState}>
+            <Icon material="extension" size={100} className={styles.loadingIcon} />
+            <div className={styles.loadingRow}>
+              <Spinner className={styles.loadingSpinner} />
+              <p className={styles.emptyText}>Loading extensions…</p>
+            </div>
           </div>
         </section>
       );
@@ -116,6 +147,7 @@ const NonInjectedMarketplaceExtensions = observer(
             const installed = installedMap.get(extension.name);
             const key = withKey(extension);
             const isInstalling = isMarketplaceInstalling(key);
+            const isUpdating = isMarketplaceUpdating(key);
             const isDisabled = installed?.isEnabled === false;
             const isUninstalling = installed
               ? extensionInstallationStateStore.isExtensionUninstalling(installed.id)
@@ -128,9 +160,11 @@ const NonInjectedMarketplaceExtensions = observer(
                 extension={extension}
                 installedExtension={installed}
                 isInstalling={isInstalling}
+                isUpdating={isUpdating}
                 isUninstalling={isUninstalling}
                 isDisabled={isDisabled}
                 onInstall={() => onInstall(extension)}
+                onUpdate={() => onUpdate(extension)}
                 onUninstall={() => installed && onUninstall(installed)}
                 onDisable={() => installed && disableExtension(installed.id)}
                 onEnable={() => installed && enableExtension(installed.id)}

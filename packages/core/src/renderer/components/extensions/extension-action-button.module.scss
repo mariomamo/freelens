@@ -1,9 +1,11 @@
 .button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   border-radius: 0.5rem;
   padding: 0.5rem 1.25rem;
+  min-width: 7rem;
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
@@ -34,6 +36,16 @@
 }
 
 .uninstall:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.update {
+  background-color: #eab308;
+  border-color: transparent;
+  color: white;
+}
+
+.update:hover:not(:disabled) {
   filter: brightness(1.1);
 }
 

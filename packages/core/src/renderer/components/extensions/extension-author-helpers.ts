@@ -9,6 +9,13 @@ export const initialsOf = (author: MarketplaceExtensionAuthor): string => {
 export const fullNameOf = (author: MarketplaceExtensionAuthor): string =>
   author.surname ? `${author.name} ${author.surname}` : author.name;
 
+// Marketplace data may provide URLs without a scheme (e.g. "www.example.com")
+export const toHttpUrl = (url: string): string => {
+  const trimmed = url.trim();
+
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+};
+
 export type AvatarPaletteClass =
   | "avatarEmerald"
   | "avatarCyan"

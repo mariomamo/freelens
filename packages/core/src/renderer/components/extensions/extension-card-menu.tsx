@@ -7,9 +7,16 @@ export interface ExtensionCardMenuProps {
   isEnabled: boolean;
   onDisable: () => void;
   onEnable: () => void;
+  onUninstall?: () => void;
 }
 
-export const ExtensionCardMenu: React.FC<ExtensionCardMenuProps> = ({ id, isEnabled, onDisable, onEnable }) => (
+export const ExtensionCardMenu: React.FC<ExtensionCardMenuProps> = ({
+  id,
+  isEnabled,
+  onDisable,
+  onEnable,
+  onUninstall,
+}) => (
   <MenuActions id={`extension-card-menu-${id}`} usePortal toolbar={false}>
     {isEnabled ? (
       <MenuItem onClick={onDisable}>
@@ -20,6 +27,12 @@ export const ExtensionCardMenu: React.FC<ExtensionCardMenuProps> = ({ id, isEnab
       <MenuItem onClick={onEnable}>
         <Icon material="check_circle" />
         <span className="title">Enable</span>
+      </MenuItem>
+    )}
+    {onUninstall && (
+      <MenuItem onClick={onUninstall}>
+        <Icon material="delete" />
+        <span className="title">Uninstall</span>
       </MenuItem>
     )}
   </MenuActions>

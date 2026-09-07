@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
-import { fireEvent, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import React from "react";
+import openLinkInBrowserInjectable from "../../../../common/utils/open-link-in-browser.injectable";
 import { getDiForUnitTesting } from "../../../getDiForUnitTesting";
 import { renderFor } from "../../test-utils/renderFor";
 import { ExtensionAuthors } from "../extension-authors";
@@ -10,10 +11,13 @@ import type { MarketplaceExtensionAuthor } from "../marketplace-extensions/marke
 describe("ExtensionAuthors", () => {
   let di: ReturnType<typeof getDiForUnitTesting>;
   let render: ReturnType<typeof renderFor>;
+  let openLinkInBrowser: jest.Mock;
 
   beforeEach(() => {
     di = getDiForUnitTesting();
     render = renderFor(di);
+    openLinkInBrowser = jest.fn();
+    di.override(openLinkInBrowserInjectable, () => openLinkInBrowser);
   });
 
   it("renders nothing when authors is empty", () => {
@@ -74,5 +78,71 @@ describe("ExtensionAuthors", () => {
 
     fireEvent.click(trigger);
     expect(trigger).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("shows a tooltip with github and website rows when hovering a visible author with links", () => {
+    const authors: MarketplaceExtensionAuthor[] = [
+      { name: "Alex", github: "https://github.com/alex", website: "www.alex.dev" },
+    ];
+    render(<ExtensionAuthors authors={authors} />);
+
+    fireEvent.mouseEnter(screen.getByTestId("author-item"));
+
+    const tooltip = screen.getByTestId("author-links-tooltip");
+    expect(within(tooltip).getByText("github")).toBeInTheDocument();
+    expect(within(tooltip).getByText("website")).toBeInTheDocument();
+
+    fireEvent.click(within(tooltip).getByText("github"));
+    expect(openLinkInBrowser).toHaveBeenCalledWith("https://github.com/alex");
+
+    fireEvent.click(within(tooltip).getByText("website"));
+    expect(openLinkInBrowser).toHaveBeenCalledWith("https://www.alex.dev");
+  });
+
+  it("keeps the tooltip open briefly after leaving so the mouse can reach it", () => {
+    jest.useFakeTimers();
+
+    const authors: MarketplaceExtensionAuthor[] = [{ name: "Alex", github: "https://github.com/alex" }];
+    render(<ExtensionAuthors authors={authors} />);
+
+    fireEvent.mouseEnter(screen.getByTestId("author-item"));
+    expect(screen.getByTestId("author-links-tooltip")).toBeInTheDocument();
+
+    fireEvent.mouseLeave(screen.getByTestId("author-item"));
+    expect(screen.getByTestId("author-links-tooltip")).toBeInTheDocument();
+
+    act(() => {
+      jest.advanceTimersByTime(100);
+    });
+    expect(screen.queryByTestId("author-links-tooltip")).not.toBeInTheDocument();
+
+    jest.useRealTimers();
+  });
+
+  it("keeps the tooltip open when re-entering before the close delay elapses", () => {
+    jest.useFakeTimers();
+
+    const authors: MarketplaceExtensionAuthor[] = [{ name: "Alex", github: "https://github.com/alex" }];
+    render(<ExtensionAuthors authors={authors} />);
+
+    fireEvent.mouseEnter(screen.getByTestId("author-item"));
+    fireEvent.mouseLeave(screen.getByTestId("author-item"));
+    fireEvent.mouseEnter(screen.getByTestId("author-item"));
+
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+    expect(screen.getByTestId("author-links-tooltip")).toBeInTheDocument();
+
+    jest.useRealTimers();
+  });
+
+  it("does not show the tooltip when the author has no links", () => {
+    const authors: MarketplaceExtensionAuthor[] = [{ name: "Alex" }];
+    render(<ExtensionAuthors authors={authors} />);
+
+    fireEvent.mouseEnter(screen.getByTestId("author-item"));
+
+    expect(screen.queryByTestId("author-links-tooltip")).not.toBeInTheDocument();
   });
 });
