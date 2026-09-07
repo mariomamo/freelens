@@ -1,5 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["tsconfig*.json", "packages/infrastructure/typescript/config/*.json"],
   "globalPassThroughEnv": [
     "APPLEID",
     "APPLEIDPASS",
@@ -38,7 +39,7 @@
       "dependsOn": ["^build:resources"],
       "env": ["CC", "CXX", "DOWNLOAD_ALL_ARCHITECTURES", "NODE_ENV"],
       "inputs": ["package.json", "**/logo-lens.svg"],
-      "outputs": ["binaries/**", "static/build/**"]
+      "outputs": ["binaries/**", "static/build/license.txt", "static/build/tray/**"]
     },
     "dev": {
       "dependsOn": ["^build:dev"],

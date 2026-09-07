@@ -12,9 +12,9 @@ import { withInjectables } from "@ogre-tools/injectable-react";
 import { observer } from "mobx-react";
 import React from "react";
 
+import type { ObservableHistory } from "@freelensapp/routing";
 import type { StrictReactNode } from "@freelensapp/utilities";
 
-import type { ObservableHistory } from "mobx-observable-history";
 import type { ErrorInfo } from "react";
 
 const issuesTrackerUrl = "https://github.com/freelensapp/freelens/issues";
@@ -50,7 +50,7 @@ class NonInjectedErrorBoundary extends React.Component<ErrorBoundaryProps & Depe
 
     if (error) {
       return (
-        <div className="ErrorBoundary flex column gaps">
+        <div className="ErrorBoundary">
           <h5>
             {"App crash at "}
             <span className="contrast">{window.location.pathname}</span>
@@ -72,7 +72,7 @@ class NonInjectedErrorBoundary extends React.Component<ErrorBoundaryProps & Depe
               {error.stack}
             </code>
           </div>
-          <Button className="box self-flex-start" primary label="Back" onClick={this.back} />
+          <Button className="back-button" primary label="Back" onClick={this.back} />
         </div>
       );
     }

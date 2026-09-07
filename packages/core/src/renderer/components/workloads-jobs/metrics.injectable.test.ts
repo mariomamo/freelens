@@ -1,6 +1,5 @@
 /**
  * Copyright (c) Freelens Authors. All rights reserved.
- * Copyright (c) OpenLens Authors. All rights reserved.
  * Licensed under MIT License. See LICENSE in root directory for more information.
  */
 
@@ -14,7 +13,7 @@ import type { Job } from "@freelensapp/kube-object";
 describe("job-metrics injectable", () => {
   it("requests job pod metrics with the selected time range", () => {
     const di = getDiForUnitTesting();
-    const requestPodMetricsForJobs = jest.fn().mockResolvedValue({});
+    const requestPodMetricsForJobs = vi.fn().mockResolvedValue({});
     const job = {
       getId: () => "job-id",
       getName: () => "job-name",

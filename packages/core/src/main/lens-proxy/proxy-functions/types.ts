@@ -4,8 +4,8 @@
  * Licensed under MIT License. See LICENSE in root directory for more information.
  */
 
-import type http from "http";
-import type net from "net";
+import type http from "node:http";
+import type net from "node:net";
 
 import type { SetRequired } from "type-fest";
 
@@ -16,4 +16,12 @@ export interface ProxyApiRequestArgs {
   socket: net.Socket;
   head: Buffer;
   cluster: Cluster;
+}
+
+/**
+ * A shell request is the one upgrade that does not need a cluster: a terminal
+ * can be opened outside of any cluster session.
+ */
+export interface ShellApiRequestArgs extends Omit<ProxyApiRequestArgs, "cluster"> {
+  cluster?: Cluster;
 }

@@ -1,6 +1,5 @@
 /**
  * Copyright (c) Freelens Authors. All rights reserved.
- * Copyright (c) OpenLens Authors. All rights reserved.
  * Licensed under MIT License. See LICENSE in root directory for more information.
  */
 
@@ -23,6 +22,7 @@ export function getDefaultOnePodLogTabData(overrides: Partial<LogTabData> = {}):
     selectedPodId: dockerPod.getId(),
     selectedContainer: dockerPod.getContainers()[0].name,
     namespace: dockerPod.getNs(),
+    showPrevious: false,
     ...defaultLogViewerPreferences,
     ...overrides,
   };
@@ -34,21 +34,21 @@ export function createMockLogTabViewModel(
   deps: Partial<LogTabViewModelDependencies>,
 ) {
   return new LogTabViewModel(tabId, {
-    getLogs: jest.fn(() => []),
-    getLogsWithoutTimestamps: jest.fn(() => []),
-    getTimestampSplitLogs: jest.fn(() => []),
-    getLogTabData: jest.fn(),
-    setLogTabData: jest.fn(),
-    loadLogs: jest.fn(),
-    reloadLogs: jest.fn(),
-    renameTab: jest.fn(),
-    stopLoadingLogs: jest.fn(),
-    getPodById: jest.fn(),
-    getPodsByOwnerId: jest.fn(),
-    areLogsPresent: jest.fn(() => false),
+    getLogs: vi.fn(() => []),
+    getLogsWithoutTimestamps: vi.fn(() => []),
+    getTimestampSplitLogs: vi.fn(() => []),
+    getLogTabData: vi.fn(),
+    setLogTabData: vi.fn(),
+    loadLogs: vi.fn(),
+    reloadLogs: vi.fn(),
+    renameTab: vi.fn(),
+    stopLoadingLogs: vi.fn(),
+    getPodById: vi.fn(),
+    getPodsByOwnerId: vi.fn(),
+    areLogsPresent: vi.fn(() => false),
     searchStore: new SearchStore(),
-    downloadLogs: jest.fn(),
-    downloadAllLogs: jest.fn(),
+    downloadLogs: vi.fn(),
+    downloadAllLogs: vi.fn(),
     userPreferencesState,
     ...deps,
   });

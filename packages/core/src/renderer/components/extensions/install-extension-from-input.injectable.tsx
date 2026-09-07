@@ -7,7 +7,6 @@
 import { loggerInjectionToken } from "@freelensapp/logger";
 import { showErrorNotificationInjectable } from "@freelensapp/notifications";
 import { getInjectable } from "@ogre-tools/injectable";
-import React from "react";
 import getBasenameOfPathInjectable from "../../../common/path/get-basename.injectable";
 import extensionInstallationStateStoreInjectable from "../../../extensions/extension-installation-state-store/extension-installation-state-store.injectable";
 import downloadBinaryViaChannelInjectable from "../../../renderer/fetch/download-binary-via-channel.injectable";
@@ -68,7 +67,7 @@ const installExtensionFromInputInjectable = getInjectable({
 
           return await attemptInstall({ fileName, data });
         } catch (error) {
-          const extNameCaptures = InputValidators.isExtensionNameInstallRegex.captures(input);
+          const extNameCaptures = InputValidators.extensionNameInstallCaptures(input);
 
           if (extNameCaptures) {
             const { name, version } = extNameCaptures;

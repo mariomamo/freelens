@@ -31,6 +31,78 @@ Never read, display, reference, or include the contents of the following files i
 - `*.pem`
 - `*.key`
 
+## Session and temporary files
+
+Files created while working on a task — scratch scripts, command output,
+screenshots, DOM/accessibility snapshots, and AI-agent / MCP-server runtime
+artifacts — must never be written into the tracked working tree, or they leak
+into git history. Write them to a system temporary directory outside the repo
+(e.g. under `$TMPDIR`, or `mktemp -d`), not to the repo root.
+
+When a tool insists on writing inside the repo, keep it out of git:
+
+- point it at a temp path if it accepts one (e.g. pass an absolute
+  `$TMPDIR/...` filename), otherwise
+- git-ignore its default output directory. Already ignored:
+  `.playwright-mcp/` (Playwright MCP), `logs/` (electron-mcp-server).
+
+Never `git add -A` / `git add .` blindly: review `git status` first and stage
+only the files your change actually touches, never these artifacts.
+
+## Copyright Headers
+
+Source files carry one of two header variants. Which one a file gets depends
+on whether it continues code from the original OpenLens fork, not on what its
+neighbours in the same directory look like.
+
+**New files** — anything created from scratch, including rewrites,
+translations, and reimplementations of removed or legacy logic — get the
+single-line variant:
+
+```ts
+/**
+ * Copyright (c) Freelens Authors. All rights reserved.
+ * Licensed under MIT License. See LICENSE in root directory for more information.
+ */
+```
+
+This holds even when the new file's logic is inspired by, or replaces, old
+OpenLens code: inspiration is not continuation. `freelens/electron.vite.config.ts`,
+written as a translation of the removed webpack config, is a new file.
+
+**Files that continue code from the fork** keep the two-line variant:
+
+```ts
+/**
+ * Copyright (c) Freelens Authors. All rights reserved.
+ * Copyright (c) OpenLens Authors. All rights reserved.
+ * Licensed under MIT License. See LICENSE in root directory for more information.
+ */
+```
+
+A file continues fork code when its path was present in the fork-import commit
+`0a5798c9` ("First commit - Open Lens fork from master branch"):
+
+```sh
+git ls-tree -r --name-only 0a5798c9 | grep -x <path>
+```
+
+or when `git log --follow -- <path>` traces it back to a path that was — that
+is, git itself detects the file as a rename, move, or copy of fork-era code:
+
+```sh
+git log --follow --format= --name-only -- <path> | sort -u
+```
+
+Never add the `OpenLens Authors` line to a file that does not already have it
+just because neighbouring files do. Do not touch legal or license text
+(`LICENSE`, `README.md`, `freelens/license-header.txt`,
+`freelens/static/build/license.txt`) or the upstream copyright notices of
+vendored third-party code, which are unrelated to either header variant.
+
+See [#2352](https://github.com/freelensapp/freelens/issues/2352) for the
+cleanup that established this rule.
+
 ## Build System
 
 ### Commands
@@ -114,6 +186,63 @@ Run `pnpm build:di` when:
 
 The build process automatically runs this, but you can run it manually to verify changes.
 
+### Bundled Binary Versions
+
+The versions of the bundled `freelens-k8s-proxy`, `kubectl` and `helm` live in
+the `config` block of `freelens/package.json`, and their exact digests are
+pinned in `freelens/binaries.lock.json`. The build reads the expected checksum
+from that lock rather than from the vendor, so **a version bump without
+regenerating the lock fails the build**:
+
+```sh
+pnpm update-binaries-lock
+```
+
+The generator downloads all eighteen artifacts (three tools, three platforms,
+two architectures), checks each against its publisher's signature — GitHub build
+provenance for freelens-k8s-proxy, PGP for helm, keyless cosign for kubectl —
+and only then writes the lock. `cosign` comes from mise (`mise install`), and
+`GITHUB_TOKEN` should be set unless you want to share 60 unauthenticated API
+calls per hour with the rest of your IP. Use `--only <tool>` to refresh a single
+tool while iterating.
+
+`.github/workflows/binaries-lock-check.yaml` enforces both that the lock is
+current and that no digest changed while its version stood still.
+
+### Downloaded kubectl Versions
+
+The bundled kubectl is not the only one the application runs: a cluster whose
+minor version differs gets a version-matched kubectl downloaded at runtime. The
+map of which patch to fetch per minor lives in
+`packages/kubectl-versions/build/versions.json`, and the digest of every
+artifact that map can produce is pinned in
+`packages/kubectl-versions/build/checksums.json`, keyed by version and then by
+`${platform}/${arch}`.
+
+`Kubectl.downloadKubectl()` hashes what it downloaded and refuses anything that
+does not match its pin, and `ensureKubectl()` refuses to download at all when
+there is no pin, falling back to the bundled binary. **A version added to the
+map without a pin therefore never gets downloaded**, so the two files are
+regenerated together:
+
+```sh
+pnpm --filter @freelensapp/kubectl-versions compute-versions
+pnpm update-kubectl-checksums
+```
+
+The generator reads `dl.k8s.io` only, never a mirror — pinning bytes from a
+mirror would let a compromised mirror bless its own digest. It skips versions
+already present, which makes a run incremental and an existing pin immutable,
+and it verifies each download against both the published `.sha256` and the
+keyless cosign signature before recording it. `cosign` comes from mise
+(`mise install`).
+
+Both files start at 1.22, the oldest line Kubernetes publishes a signature for,
+and coverage is not uniform below that floor's neighbours: v1.22.17 has no
+`windows/arm64` build, so the generator logs an unpublished variant and carries
+on rather than failing. `.github/workflows/kubectl-checksums-check.yaml`
+verifies added pins and asserts that no existing digest changed.
+
 ## Common Development Tasks
 
 ### Adding a New Feature
@@ -134,34 +263,42 @@ The build process automatically runs this, but you can run it manually to verify
 - Open DevTools in the app
 - Check Console tab for errors and logs
 - Use React DevTools for component inspection
+- `pnpm dev` also exposes a Chrome DevTools Protocol endpoint on port 9223
+  (`--remoteDebuggingPort`). Note that each cluster's UI renders in a
+  cross-origin `<clusterId>.renderer.freelens.app` iframe, so inspecting or
+  automating cluster views requires a frame-aware CDP client — see the
+  AI-agent inspection notes in DEVELOPMENT.md.
 
 **Common Errors:**
 - `Tried to register same injectable multiple times` - See DI section above
 - `Tried to inject non-registered injectable` - Check registration files were generated
 - Permission errors on macOS - Expected during development
 
-### Working with Webpack
+### Working with the bundler (electron-vite)
 
-The project uses Webpack for bundling:
+The project bundles with electron-vite (Vite + Rollup); the legacy Webpack
+layer was removed in #2118.
 
-- `freelens/webpack/` - Webpack configuration
-- Changes to source files auto-rebuild in dev mode
-- Changes to generated files require full rebuild
+- `freelens/electron.vite.config.ts` - main/renderer build and dev-server config
+- `pnpm dev` runs `electron-vite dev` with Vite HMR; renderer source changes
+  hot-reload, main-process changes rebuild and relaunch (via `--watch`)
+- Changes to generated files (e.g. DI registration) require a full rebuild
 
-**Cache issues:** Delete `dist` folders and rebuild
+**Cache issues:** Delete the build output and rebuild
+(`rm -rf .turbo packages/core/dist freelens/dist`)
 
 ## Troubleshooting Patterns
 
 ### Changes Not Appearing
 
 1. Check if file is in ignored directory (`dist/`, `node_modules/`)
-2. Clear webpack cache: `rm -rf packages/core/dist freelens/dist`
+2. Clear the build output: `rm -rf .turbo packages/core/dist freelens/dist`
 3. Full rebuild: `pnpm build`
 4. Restart application: `pnpm start`
 
 ### Build Failures
 
-1. Check for TypeScript errors: `pnpm type-check`
+1. Check for TypeScript errors: `pnpm type:check`
 2. Check for linting errors: `pnpm lint`
 3. Verify dependencies: `pnpm install`
 4. Check Node.js version matches `.nvmrc`
@@ -196,6 +333,25 @@ Uses pnpm workspaces for:
 - Faster builds
 - Type safety across packages
 
+## Styling
+
+Freelens v2 carries four styling systems (theme CSS custom properties, global
+plain SCSS, CSS Modules, and Tailwind v4). Which one to use is not a matter of
+taste — each has a defined role. Before adding or changing any stylesheet or
+`className`, read [`docs/v2-styling.md`](./docs/v2-styling.md). In short:
+
+- **Theme values** (colors, fonts): CSS custom properties from the TS theme
+  system (`var(--…)`) — the single contract every other system reads.
+- **Shared components** (`packages/ui-components`) and anything an extension
+  may restyle: global PascalCase class + plain SCSS + `var(--…)`. No Tailwind
+  (its JIT only scans core TSX), no CSS Modules (the class names are public
+  API).
+- **Core single components / full views**: CSS Modules (`*.module.scss`).
+- **Local layout inside core-only TSX**: Tailwind utilities. The legacy
+  `flexbox.scss` utilities have been removed — do not reintroduce them.
+- **Extensions**: see the styling section of
+  [`docs/v2-extension-migration.md`](./docs/v2-extension-migration.md).
+
 ## Best Practices
 
 1. **Always regenerate DI files** after adding/moving injectables
@@ -210,6 +366,48 @@ Uses pnpm workspaces for:
 10. **Do not use Antropic Fable for coding tasks** — Fable may be used only for planning,
     analysis, and thinking through problems. When writing or editing code,
     use standard editing tools instead.
+
+## Local Agent: Triggering the GitHub Agent
+
+These rules apply to an agent running on a developer machine (a local Claude
+Code session), not to the workflow agent. The local agent shares the repository
+with the CI agent defined in `.github/workflows/claude.yaml`, and every comment
+it writes on GitHub is a potential trigger for it.
+
+### How the trigger works
+
+`claude.yaml` starts a run when the body of a **newly created** comment (issue
+comment or PR review comment), a **newly opened** issue (body or title), or a
+**submitted** PR review contains the string `@claude`, and the author is an
+OWNER, MEMBER or COLLABORATOR. The check is a plain
+`contains(github.event.comment.body, '@claude')` substring test, so the string
+fires the workflow wherever it appears — including inside a code span, a fenced
+block, a quoted line, or a URL. Markdown formatting is not an escape.
+
+The trigger text may also carry `[model:<alias>]` and `[runs-on:<alias>]`
+markers, which select the model and runner for that run (see the `parse` job for
+the accepted aliases). They are only read from the triggering text.
+
+### Rules for the local agent
+
+1. **Write the handle only to start a run.** Ask the user before triggering: a
+   run is a 120-minute CI job on the repository, so it is the user's call, not
+   an implementation detail.
+2. **Escape the handle when merely referring to it.** In issue bodies, PR
+   descriptions, review notes, commit messages and documentation, write
+   `@<!-- -->claude` (displays as the handle, but the raw body does not contain
+   the literal string, so `contains()` does not match) or describe it in prose
+   as "the Claude handle". This is what keeps a plan or a bug report that
+   documents the trigger from firing it.
+3. **Editing never triggers.** The workflow subscribes only to `created`,
+   `opened` and `submitted` events — not `edited`. So updating a comment, an
+   issue body or a PR description is always safe, even when the text already
+   contains a real trigger, and conversely editing a comment to add the handle
+   does **not** start a run: a new comment is required.
+4. **One trigger per task.** Do not repeat the handle in follow-up comments
+   while a run is in flight; each occurrence starts another concurrent job.
+5. **Push first.** The workflow checks out the remote ref (the PR head, or the
+   default branch for issues), so anything not pushed is invisible to it.
 
 ## GitHub Actions (Claude Code Action) Rules
 
@@ -284,6 +482,41 @@ When asked to implement a change on a PR:
    separately. Do not batch multiple independent fixes into a single
    commit. This keeps the history bisectable and makes each change easy
    to revert individually.
+
+### Pushing After Every Commit
+
+The GitHub Actions job running Claude has a total timeout of 120 minutes.
+When the session times out, any commits that exist only in the runner's
+local checkout are lost. To make the work resumable in a follow-up session:
+
+1. **Push to the remote branch immediately after every commit.** Do not
+   accumulate multiple local commits before pushing — commit, push, then
+   move on to the next change.
+2. This pairs with the "one commit per fix" rule above: each completed fix
+   should land on the remote branch as soon as it is committed, so a
+   timed-out session can be resumed from the last pushed commit instead of
+   starting over.
+
+### Modifying GitHub Actions Workflows
+
+Claude cannot push changes to files under `.github/workflows/` directly,
+because the GitHub token used by the action lacks the `workflows` permission.
+Any patch to a workflow file MUST therefore be delivered as a new, complete
+file under the `github-workflow-fix/` directory instead of editing the file in
+place:
+
+1. Write the full, final contents of the workflow to
+   `github-workflow-fix/<workflow-file-name>` (e.g.
+   `github-workflow-fix/claude.yaml`). Do **not** edit the original file under
+   `.github/workflows/`.
+2. Make it a **complete** file — the entire workflow as it should look after
+   the change, not just a diff or fragment — so it can be copied verbatim.
+3. Commit and open the PR as usual. In the PR description, clearly note that
+   the file is a proposed workflow change and that a maintainer must move it
+   from `github-workflow-fix/` to `.github/workflows/` manually.
+
+This lets the PR be created successfully while leaving the actual workflow
+change for a human to apply.
 
 ### Branch Naming Conventions
 
@@ -390,10 +623,16 @@ than guessing.
 
 ### Development Environment
 
-The GitHub Actions runner has a full Node.js + pnpm environment available.
-Dependencies are already installed (`pnpm install` has been run). The build
-step is skipped to save CI resources, but you can run build commands when
-needed for advanced tasks (e.g. type-checking, running tests).
+The GitHub Actions runner has a full Node.js + pnpm environment available, and
+the workflow attempts to install the dependencies (`pnpm install`) and the
+`trunk` CLI before starting Claude. The build step is skipped to save CI
+resources, but you can run build commands when needed for advanced tasks
+(e.g. type-checking, running tests).
+
+Every one of those setup steps is `continue-on-error`, so any of them may have
+failed and left its tool or `node_modules` missing. Verify that what you need
+is actually there before relying on it, and never report a check as passing
+when it did not run — say that it was unavailable instead.
 
 For fork PRs, the `origin` remote points to the contributor's fork. An
 `upstream` remote is configured pointing to `freelensapp/freelens`. Push
@@ -407,6 +646,8 @@ The following CLI tools are explicitly allowed in the workflow:
 - `git` (all subcommands) — for viewing changes, creating branches,
   committing, and pushing
 - `gh` (all subcommands) — for managing pull requests
+- `trunk` — for linting and formatting every non-TypeScript file type
+- `bash` — for syntax-checking shell scripts (`bash -n <script>`)
 - `npx`, `node` — for running Node.js tools and scripts inline
 - `yq`, `jq` — for YAML and JSON processing
 - `grep`, `rg` (ripgrep), `find`, `xargs` — for searching and iterating
@@ -422,8 +663,11 @@ developers:
 
 - Run `pnpm biome check --write` to auto-format TypeScript/JavaScript and
   HTML files (or `pnpm biome check` to check without writing).
-- Run `pnpm trunk check` to validate all other file types (or `trunk check`
-  if the trunk CLI is installed globally).
+- Run `trunk check` to validate all other file types. The workflow puts the
+  CLI on `PATH`, so call it directly; `pnpm trunk check` works too but
+  re-downloads the launcher and its linters. It only inspects changed files by
+  default — use `trunk check --all` after a broad change.
+- Syntax-check a shell script you edited with `bash -n <script>`.
 - Run `pnpm build:di` if you added, moved, or renamed injectable files.
 - If unit tests fail on snapshot mismatches after your changes (or you are
   explicitly asked to update them), run `pnpm test:unit:updatesnapshot` to

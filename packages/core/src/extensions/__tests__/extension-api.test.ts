@@ -50,8 +50,7 @@ describe("Extensions API", () => {
         expect(() => extensions.Common.App.isLinux).not.toThrow();
       });
 
-      it("should have slackUrl and issuesTrackerUrl properties", () => {
-        expect(extensions.Common.App).toHaveProperty("slackUrl");
+      it("should have issuesTrackerUrl property", () => {
         expect(extensions.Common.App).toHaveProperty("issuesTrackerUrl");
       });
     });
@@ -197,12 +196,9 @@ describe("Extensions API", () => {
     });
 
     describe("K8sApi namespace", () => {
-      it("should export isAllowedResource and other API objects", () => {
-        expect(extensions.Main.K8sApi).toHaveProperty("isAllowedResource");
-        expect(typeof extensions.Main.K8sApi.isAllowedResource).toBe("function");
+      it("should export API objects", () => {
         expect(extensions.Main.K8sApi).toHaveProperty("apiManager");
         expect(extensions.Main.K8sApi).toHaveProperty("forCluster");
-        expect(extensions.Main.K8sApi).toHaveProperty("forRemoteCluster");
         expect(extensions.Main.K8sApi).toHaveProperty("createResourceStack");
         expect(extensions.Main.K8sApi).toHaveProperty("getPodsByOwnerId");
       });
@@ -316,7 +312,6 @@ describe("Extensions API", () => {
         expect(extensions.Renderer.Component).toHaveProperty("KubeObjectMenu");
         expect(extensions.Renderer.Component).toHaveProperty("KubeObjectMeta");
         expect(extensions.Renderer.Component).toHaveProperty("LineProgress");
-        expect(extensions.Renderer.Component).toHaveProperty("List");
         expect(extensions.Renderer.Component).toHaveProperty("LocaleDate");
         expect(extensions.Renderer.Component).toHaveProperty("MainLayout");
         expect(extensions.Renderer.Component).toHaveProperty("Map");
@@ -375,10 +370,8 @@ describe("Extensions API", () => {
     });
 
     describe("Theme namespace", () => {
-      it("should export activeTheme and getActiveTheme", () => {
+      it("should export activeTheme", () => {
         expect(extensions.Renderer.Theme).toHaveProperty("activeTheme");
-        expect(extensions.Renderer.Theme).toHaveProperty("getActiveTheme");
-        expect(typeof extensions.Renderer.Theme.getActiveTheme).toBe("function");
       });
     });
   });

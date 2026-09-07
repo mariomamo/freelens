@@ -1,6 +1,5 @@
 /**
  * Copyright (c) Freelens Authors. All rights reserved.
- * Copyright (c) OpenLens Authors. All rights reserved.
  * Licensed under MIT License. See LICENSE in root directory for more information.
  */
 
@@ -20,7 +19,7 @@ describe("LogTabViewModel", () => {
   });
 
   it("updates the saved log viewer preferences and the current tab data", () => {
-    const setLogTabData = jest.fn();
+    const setLogTabData = vi.fn();
     const model = createMockLogTabViewModel("tab-id", userPreferencesState, {
       getLogTabData: () => getDefaultOnePodLogTabData(),
       setLogTabData,
@@ -30,7 +29,6 @@ describe("LogTabViewModel", () => {
 
     expect(userPreferencesState.logViewerPreferences).toEqual({
       showTimestamps: true,
-      showPrevious: false,
       showWordWrap: true,
     });
     expect(setLogTabData).toHaveBeenCalledWith("tab-id", {

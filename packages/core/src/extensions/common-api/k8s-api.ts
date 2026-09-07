@@ -19,11 +19,6 @@ import {
 import { maybeKubeApiInjectable, storesAndApisCanBeCreatedInjectionToken } from "@freelensapp/kube-api-specifics";
 import { KubeJsonApiDataFor, KubeObject, KubeObjectMetadata } from "@freelensapp/kube-object";
 import {
-  asLegacyGlobalForExtensionApi,
-  asLegacyGlobalFunctionForExtensionApi,
-  getLegacyGlobalDiForExtensionApi,
-} from "@freelensapp/legacy-global-di";
-import {
   logDebugInjectionToken,
   logErrorInjectionToken,
   loggerInjectionToken,
@@ -33,14 +28,18 @@ import {
 import createResourceStackInjectable from "../../common/k8s/create-resource-stack.injectable";
 import apiManagerInjectable from "../../common/k8s-api/api-manager/manager.injectable";
 import createKubeApiForClusterInjectable from "../../common/k8s-api/create-kube-api-for-cluster.injectable";
-import createKubeApiForRemoteClusterInjectable from "../../common/k8s-api/create-kube-api-for-remote-cluster.injectable";
 import createKubeJsonApiInjectable from "../../common/k8s-api/create-kube-json-api.injectable";
 import createKubeJsonApiForClusterInjectable from "../../common/k8s-api/create-kube-json-api-for-cluster.injectable";
 import { KubeObjectStore as InternalKubeObjectStore } from "../../common/k8s-api/kube-object.store";
 import clusterFrameContextForNamespacedResourcesInjectable from "../../renderer/cluster-frame-context/for-namespaced-resources.injectable";
 import getPodsByOwnerIdInjectable from "../../renderer/components/workloads-pods/get-pods-by-owner-id.injectable";
+import {
+  asLazyInjectedForExtensionApi,
+  asLazyInjectedFunctionForExtensionApi,
+  getDiForExtensionApi,
+} from "../extension-api-di";
 
-import type { JsonApiConfig } from "@freelensapp/json-api";
+import type { FetchRequestInit, JsonApiConfig } from "@freelensapp/json-api";
 import type {
   DerivedKubeApiOptions,
   KubeJsonApi as InternalKubeJsonApi,
@@ -48,20 +47,15 @@ import type {
   KubeApiOptions,
 } from "@freelensapp/kube-api";
 
-import type { NodeFetchRequestInit } from "../../common/fetch/node-fetch.injectable";
-import type { ResourceApplyingStack } from "../../common/k8s/resource-stack";
 import type { KubeApiDataFrom, KubeObjectStoreOptions } from "../../common/k8s-api/kube-object.store";
-import type { ClusterContext } from "../../renderer/cluster-frame-context/cluster-frame-context";
-import type { KubernetesCluster } from "./catalog";
 
-export const apiManager = asLegacyGlobalForExtensionApi(apiManagerInjectable);
-export const forCluster = asLegacyGlobalFunctionForExtensionApi(createKubeApiForClusterInjectable);
-export const forRemoteCluster = asLegacyGlobalFunctionForExtensionApi(createKubeApiForRemoteClusterInjectable);
-export const createResourceStack = asLegacyGlobalFunctionForExtensionApi(createResourceStackInjectable);
-export const getPodsByOwnerId = asLegacyGlobalFunctionForExtensionApi(getPodsByOwnerIdInjectable);
+export const apiManager = asLazyInjectedForExtensionApi(apiManagerInjectable);
+export const forCluster = asLazyInjectedFunctionForExtensionApi(createKubeApiForClusterInjectable);
+export const createResourceStack = asLazyInjectedFunctionForExtensionApi(createResourceStackInjectable);
+export const getPodsByOwnerId = asLazyInjectedFunctionForExtensionApi(getPodsByOwnerIdInjectable);
 
 const getKubeApiDeps = (): KubeApiDependencies => {
-  const di = getLegacyGlobalDiForExtensionApi();
+  const di = getDiForExtensionApi();
 
   return {
     logDebug: di.inject(logDebugInjectionToken),
@@ -91,7 +85,7 @@ function KubeApiCstr<
 >({ autoRegister = true, ...opts }: KubeApiOptions<Object, Data> & ExternalKubeApiOptions) {
   const api = new InternalKubeApi(getKubeApiDeps(), opts);
 
-  const di = getLegacyGlobalDiForExtensionApi();
+  const di = getDiForExtensionApi();
   const storesAndApisCanBeCreated = di.inject(storesAndApisCanBeCreatedInjectionToken);
 
   if (storesAndApisCanBeCreated && autoRegister) {
@@ -112,34 +106,6 @@ export const KubeApi = KubeApiCstr as unknown as new <
 >(
   opts: KubeApiOptions<Object, Data> & ExternalKubeApiOptions,
 ) => InternalKubeApi<Object, Data>;
-
-/**
- * @deprecated Switch to using `Common.createResourceStack` instead
- */
-export class ResourceStack implements ResourceApplyingStack {
-  private readonly impl: ResourceApplyingStack;
-
-  constructor(cluster: KubernetesCluster, name: string) {
-    this.impl = createResourceStack(cluster, name);
-  }
-
-  kubectlApplyFolder(folderPath: string, templateContext?: any, extraArgs?: string[] | undefined): Promise<string> {
-    return this.impl.kubectlApplyFolder(folderPath, templateContext, extraArgs);
-  }
-
-  kubectlDeleteFolder(folderPath: string, templateContext?: any, extraArgs?: string[] | undefined): Promise<string> {
-    return this.impl.kubectlDeleteFolder(folderPath, templateContext, extraArgs);
-  }
-}
-
-/**
- * @deprecated This type is unused
- */
-export interface IKubeApiCluster {
-  metadata: {
-    uid: string;
-  };
-}
 
 export {
   createKubeObject,
@@ -169,10 +135,9 @@ export type {
 } from "@freelensapp/kube-object";
 
 export type { CreateKubeApiForLocalClusterConfig as ILocalKubeApiConfig } from "../../common/k8s-api/create-kube-api-for-cluster.injectable";
-export type { CreateKubeApiForRemoteClusterConfig as IRemoteKubeApiConfig } from "../../common/k8s-api/create-kube-api-for-remote-cluster.injectable";
 
-function KubeJsonApiCstr(config: JsonApiConfig, reqInit?: NodeFetchRequestInit) {
-  const di = getLegacyGlobalDiForExtensionApi();
+function KubeJsonApiCstr(config: JsonApiConfig, reqInit?: FetchRequestInit) {
+  const di = getDiForExtensionApi();
   const createKubeJsonApi = di.inject(createKubeJsonApiInjectable);
 
   return createKubeJsonApi(config, reqInit);
@@ -183,10 +148,10 @@ export type KubeJsonApi = InternalKubeJsonApi;
 export const KubeJsonApi = Object.assign(
   KubeJsonApiCstr as unknown as new (
     config: JsonApiConfig,
-    reqInit?: RequestInit,
+    reqInit?: FetchRequestInit,
   ) => InternalKubeJsonApi,
   {
-    forCluster: asLegacyGlobalForExtensionApi(createKubeJsonApiForClusterInjectable),
+    forCluster: asLazyInjectedForExtensionApi(createKubeJsonApiForClusterInjectable),
   },
 );
 
@@ -195,28 +160,13 @@ export abstract class KubeObjectStore<
   A extends InternalKubeApi<K, D> = InternalKubeApi<K, KubeJsonApiDataFor<K>>,
   D extends KubeJsonApiDataFor<K> = KubeApiDataFrom<K, A>,
 > extends InternalKubeObjectStore<K, A, D> {
-  /**
-   * @deprecated This is no longer used and shouldn't have been every really used
-   */
-  static readonly context = {
-    set: (ctx: ClusterContext) => {
-      console.warn("Setting KubeObjectStore.context is no longer supported");
-      void ctx;
-    },
-    get: () => asLegacyGlobalForExtensionApi(clusterFrameContextForNamespacedResourcesInjectable),
-  };
-
   get context() {
     return this.dependencies.context;
   }
 
   constructor(api: A, opts?: KubeObjectStoreOptions);
-  /**
-   * @deprecated Supply API instance through constructor
-   */
-  constructor();
   constructor(api?: A, opts?: KubeObjectStoreOptions) {
-    const di = getLegacyGlobalDiForExtensionApi();
+    const di = getDiForExtensionApi();
 
     super(
       {
@@ -236,46 +186,20 @@ export type {
   KubeObjectStoreSubscribeParams,
 } from "../../common/k8s-api/kube-object.store";
 
-/**
- * @deprecated This type is only present for backwards compatible typescript support
- */
-export interface IgnoredKubeApiOptions {
-  /**
-   * @deprecated this option is overridden and should not be used
-   */
-  objectConstructor?: any;
-  /**
-   * @deprecated this option is overridden and should not be used
-   */
-  kind?: any;
-  /**
-   * @deprecated this option is overridden and should not be used
-   */
-  isNamespaces?: any;
-  /**
-   * @deprecated this option is overridden and should not be used
-   */
-  apiBase?: any;
-}
-
 // NOTE: these *Constructor functions MUST be `function` to work with `new X()`
-function PodsApiConstructor(opts?: DerivedKubeApiOptions & IgnoredKubeApiOptions) {
+function PodsApiConstructor(opts?: DerivedKubeApiOptions) {
   return new PodApi(getKubeApiDeps(), opts);
 }
 
 export type PodsApi = PodApi;
-export const PodsApi = PodsApiConstructor as unknown as new (
-  opts?: DerivedKubeApiOptions & IgnoredKubeApiOptions,
-) => PodApi;
+export const PodsApi = PodsApiConstructor as unknown as new (opts?: DerivedKubeApiOptions) => PodApi;
 
-function NodesApiConstructor(opts?: DerivedKubeApiOptions & IgnoredKubeApiOptions) {
+function NodesApiConstructor(opts?: DerivedKubeApiOptions) {
   return new NodeApi(getKubeApiDeps(), opts);
 }
 
 export type NodesApi = NodeApi;
-export const NodesApi = NodesApiConstructor as unknown as new (
-  opts?: DerivedKubeApiOptions & IgnoredKubeApiOptions,
-) => NodeApi;
+export const NodesApi = NodesApiConstructor as unknown as new (opts?: DerivedKubeApiOptions) => NodeApi;
 
 function DeploymentApiConstructor(opts?: DerivedKubeApiOptions) {
   return new InternalDeploymentApi(getKubeApiDeps(), opts);
@@ -286,22 +210,20 @@ export const DeploymentApi = DeploymentApiConstructor as unknown as new (
   opts?: DerivedKubeApiOptions,
 ) => InternalDeploymentApi;
 
-function IngressApiConstructor(opts?: DerivedKubeApiOptions & IgnoredKubeApiOptions) {
+function IngressApiConstructor(opts?: DerivedKubeApiOptions) {
   return new InternalIngressApi(getKubeApiDeps(), opts);
 }
 
 export type IngressApi = InternalIngressApi;
-export const IngressApi = IngressApiConstructor as unknown as new (
-  opts?: DerivedKubeApiOptions & IgnoredKubeApiOptions,
-) => InternalIngressApi;
+export const IngressApi = IngressApiConstructor as unknown as new (opts?: DerivedKubeApiOptions) => InternalIngressApi;
 
-function PersistentVolumeClaimsApiConstructor(opts?: DerivedKubeApiOptions & IgnoredKubeApiOptions) {
+function PersistentVolumeClaimsApiConstructor(opts?: DerivedKubeApiOptions) {
   return new PersistentVolumeClaimApi(getKubeApiDeps(), opts);
 }
 
 export type PersistentVolumeClaimsApi = PersistentVolumeClaimApi;
 export const PersistentVolumeClaimsApi = PersistentVolumeClaimsApiConstructor as unknown as new (
-  opts?: DerivedKubeApiOptions & IgnoredKubeApiOptions,
+  opts?: DerivedKubeApiOptions,
 ) => PersistentVolumeClaimApi;
 
 export {

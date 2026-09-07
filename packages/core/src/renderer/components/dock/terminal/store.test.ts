@@ -1,6 +1,5 @@
 /**
  * Copyright (c) Freelens Authors. All rights reserved.
- * Copyright (c) OpenLens Authors. All rights reserved.
  * Licensed under MIT License. See LICENSE in root directory for more information.
  */
 
@@ -12,10 +11,10 @@ describe("TerminalStore", () => {
   const tabId = "tab-id";
 
   it("sends exit and destroys resources when terminal is ready", () => {
-    const sendMessage = jest.fn();
-    const apiConnect = jest.fn();
-    const apiDestroy = jest.fn();
-    const terminalDestroy = jest.fn();
+    const sendMessage = vi.fn();
+    const apiConnect = vi.fn();
+    const apiDestroy = vi.fn();
+    const terminalDestroy = vi.fn();
 
     const terminalApi = {
       isReady: true,
@@ -29,8 +28,8 @@ describe("TerminalStore", () => {
     } as any;
 
     const store = new TerminalStore({
-      createTerminalApi: jest.fn(() => terminalApi),
-      createTerminal: jest.fn(() => terminal),
+      createTerminalApi: vi.fn(() => terminalApi),
+      createTerminal: vi.fn(() => terminal),
     });
 
     store.connect({ id: tabId, kind: TabKind.TERMINAL, title: "Terminal", pinned: false });
@@ -50,10 +49,10 @@ describe("TerminalStore", () => {
   });
 
   it("does not send exit when terminal is not ready", () => {
-    const sendMessage = jest.fn();
-    const apiConnect = jest.fn();
-    const apiDestroy = jest.fn();
-    const terminalDestroy = jest.fn();
+    const sendMessage = vi.fn();
+    const apiConnect = vi.fn();
+    const apiDestroy = vi.fn();
+    const terminalDestroy = vi.fn();
 
     const terminalApi = {
       isReady: false,
@@ -67,8 +66,8 @@ describe("TerminalStore", () => {
     } as any;
 
     const store = new TerminalStore({
-      createTerminalApi: jest.fn(() => terminalApi),
-      createTerminal: jest.fn(() => terminal),
+      createTerminalApi: vi.fn(() => terminalApi),
+      createTerminal: vi.fn(() => terminal),
     });
 
     store.connect({ id: tabId, kind: TabKind.TERMINAL, title: "Terminal", pinned: false });

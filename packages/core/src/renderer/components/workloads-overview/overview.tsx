@@ -10,7 +10,7 @@ import { Icon } from "@freelensapp/icon";
 import { TooltipPosition } from "@freelensapp/tooltip";
 import { withInjectables } from "@ogre-tools/injectable-react";
 import { makeObservable, observable, reaction } from "mobx";
-import { disposeOnUnmount, observer } from "mobx-react";
+import { observer } from "mobx-react";
 import React from "react";
 import clusterFrameContextForNamespacedResourcesInjectable from "../../cluster-frame-context/for-namespaced-resources.injectable";
 import subscribeStoresInjectable from "../../kube-watch-api/subscribe-stores.injectable";
@@ -55,6 +55,7 @@ interface Dependencies {
 
 @observer
 class NonInjectedWorkloadsOverview extends React.Component<Dependencies> {
+  private readonly disposers: (() => void)[] = [];
   @observable loadErrors: string[] = [];
 
   constructor(props: Dependencies) {
@@ -63,7 +64,11 @@ class NonInjectedWorkloadsOverview extends React.Component<Dependencies> {
   }
 
   componentDidMount() {
-    disposeOnUnmount(this, [
+    // Capture props before the reaction: mobx-react 9 forbids reading this.props
+    // inside a derivation (the reaction's data function below).
+    const { clusterFrameContext } = this.props;
+
+    this.disposers.push(
       this.props.subscribeStores(
         [
           this.props.cronJobStore,
@@ -80,13 +85,17 @@ class NonInjectedWorkloadsOverview extends React.Component<Dependencies> {
         },
       ),
       reaction(
-        () => this.props.clusterFrameContext.contextNamespaces.slice(),
+        () => clusterFrameContext.contextNamespaces.slice(),
         () => {
           // clear load errors
           this.loadErrors.length = 0;
         },
       ),
-    ]);
+    );
+  }
+
+  componentWillUnmount() {
+    this.disposers.forEach((dispose) => dispose());
   }
 
   renderLoadErrors() {
@@ -115,9 +124,9 @@ class NonInjectedWorkloadsOverview extends React.Component<Dependencies> {
   render() {
     return (
       <SiblingsInTabLayout scrollable>
-        <div className="WorkloadsOverview flex column gaps" data-testid="page-for-workloads-overview">
-          <div className="header flex gaps align-center">
-            <h5 className="box grow">Overview</h5>
+        <div className="WorkloadsOverview flex flex-col gap-4" data-testid="page-for-workloads-overview">
+          <div className="header flex gap-4 items-center">
+            <h5 className="grow shrink-0 basis-0">Overview</h5>
             {this.renderLoadErrors()}
             <NamespaceSelectFilter id="overview-namespace-select-filter-input" />
           </div>

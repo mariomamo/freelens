@@ -4,9 +4,9 @@
  * Licensed under MIT License. See LICENSE in root directory for more information.
  */
 
-import { ApiException, type KubeConfig } from "@freelensapp/kubernetes-client-node";
 import { loggerInjectionToken } from "@freelensapp/logger";
 import { disposer, isDefined, isRequestError, withConcurrencyLimit } from "@freelensapp/utilities";
+import { ApiException, type KubeConfig } from "@kubernetes/client-node";
 import { getInjectable, lifecycleEnum } from "@ogre-tools/injectable";
 import { comparer, reaction, runInAction } from "mobx";
 import createAuthorizationApiInjectable from "../../common/cluster/create-authorization-api.injectable";
@@ -241,7 +241,9 @@ class ClusterConnection {
     const proxyConfig = await this.dependencies.loadProxyKubeconfig();
     const api = this.dependencies.createAuthorizationApi(proxyConfig);
     const canI = this.dependencies.createCanI(api);
-    const requestNamespaceListPermissions = this.dependencies.createRequestNamespaceListPermissions(api);
+    const requestNamespaceListPermissions = this.cluster.preferences.skipNamespaceAuthorizationCheck
+      ? async () => () => true
+      : this.dependencies.createRequestNamespaceListPermissions(api);
 
     const isAdmin = await canI({
       namespace: "kube-system",

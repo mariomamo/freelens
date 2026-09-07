@@ -20,12 +20,12 @@ import styles from "./installed-extensions.module.scss";
 import { SearchBar } from "./search-bar";
 import userExtensionsInjectable from "./user-extensions/user-extensions.injectable";
 
-import type { InstalledExtension } from "@freelensapp/legacy-extensions";
-
 import type { IComputedValue } from "mobx";
 
 import type { ExtensionDiscovery } from "../../../extensions/extension-discovery/extension-discovery";
 import type { ExtensionInstallationStateStore } from "../../../extensions/extension-installation-state-store/extension-installation-state-store";
+import type { InstalledExtension } from "../../../extensions/installed-extension";
+import type { SortableTableColumn } from "../table/sortable-table";
 import type { ConfirmUninstallExtension } from "./confirm-uninstall-extension.injectable";
 import type { DisableExtension } from "./disable-extension.injectable";
 import type { EnableExtension } from "./enable-extension.injectable";
@@ -71,7 +71,7 @@ const NonInjectedInstalledExtensions = observer(
 
     if (extensions.length === 0) {
       return (
-        <div className="flex column h-full items-center justify-center">
+        <div className="flex flex-col h-full items-center justify-center">
           <Icon material="extension" className={styles.noItemsIcon} />
           <h3 className="font-medium text-3xl mt-5 mb-2">There are no extensions installed.</h3>
           <p>Please use the form above to install or drag a tarball file here.</p>

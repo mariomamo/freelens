@@ -8,6 +8,7 @@ import { KubeObject } from "@freelensapp/kube-object";
 import { noop } from "@freelensapp/utilities";
 import { KubeObjectStore } from "../kube-object.store";
 
+import type { FetchRequestInit as RequestInit } from "@freelensapp/json-api";
 import type { KubeApi } from "@freelensapp/kube-api";
 
 import type { KubeObjectStoreLoadingParams } from "../kube-object.store";
@@ -45,7 +46,7 @@ class FakeKubeObjectStore extends KubeObjectStore<KubeObject> {
 
 describe("KubeObjectStore", () => {
   it("should remove an object from the list of items after it is not returned from listing the same namespace again", async () => {
-    const loadItems = jest.fn();
+    const loadItems = vi.fn();
     const obj = new KubeObject({
       apiVersion: "v1",
       kind: "Foo",
@@ -79,7 +80,7 @@ describe("KubeObjectStore", () => {
   });
 
   it("should not remove an object that is not returned, if it is in a different namespace", async () => {
-    const loadItems = jest.fn();
+    const loadItems = vi.fn();
     const objInDefaultNamespace = new KubeObject({
       apiVersion: "v1",
       kind: "Foo",
@@ -124,7 +125,7 @@ describe("KubeObjectStore", () => {
   });
 
   it("should remove all objects not returned if the api is cluster-scoped", async () => {
-    const loadItems = jest.fn();
+    const loadItems = vi.fn();
     const clusterScopedObject1 = new KubeObject({
       apiVersion: "v1",
       kind: "Foo",
@@ -161,5 +162,124 @@ describe("KubeObjectStore", () => {
     await store.loadAll({});
 
     expect(store.items).not.toContain(clusterScopedObject1);
+  });
+
+  it("should not treat an aborted load as a failed load", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(noop);
+    const loadItems = vi.fn();
+    const obj = new KubeObject({
+      apiVersion: "v1",
+      kind: "Foo",
+      metadata: {
+        name: "some-obj-name",
+        resourceVersion: "1",
+        uid: "some-uid",
+        selfLink: "/some/self/link",
+      },
+    });
+    const store = new FakeKubeObjectStore(loadItems, {
+      isNamespaced: false,
+    });
+
+    loadItems.mockImplementationOnce(() => [obj]);
+
+    await store.loadAll({});
+
+    expect(store.items).toContain(obj);
+
+    loadItems.mockImplementationOnce(() => {
+      throw new DOMException("The operation was aborted.", "AbortError");
+    });
+
+    const result = await store.loadAll({});
+
+    expect(result).toBeUndefined();
+    // the freshly loaded items and the loading flags must be left untouched
+    expect(store.items).toContain(obj);
+    expect(store.failedLoading).toBe(false);
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    warnSpy.mockRestore();
+  });
+
+  it("should not treat a load with an already-aborted signal as a failed load", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(noop);
+    const loadItems = vi.fn();
+    const obj = new KubeObject({
+      apiVersion: "v1",
+      kind: "Foo",
+      metadata: {
+        name: "some-obj-name",
+        resourceVersion: "1",
+        uid: "some-uid",
+        selfLink: "/some/self/link",
+      },
+    });
+    const store = new FakeKubeObjectStore(loadItems, {
+      isNamespaced: false,
+    });
+
+    loadItems.mockImplementationOnce(() => [obj]);
+
+    await store.loadAll({});
+
+    expect(store.items).toContain(obj);
+
+    const controller = new AbortController();
+
+    controller.abort();
+
+    loadItems.mockImplementationOnce(() => {
+      throw new Error("boom");
+    });
+
+    const result = await store.loadAll({
+      reqInit: { signal: controller.signal } as RequestInit,
+    });
+
+    expect(result).toBeUndefined();
+    expect(store.items).toContain(obj);
+    expect(store.failedLoading).toBe(false);
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    warnSpy.mockRestore();
+  });
+
+  it("should treat a genuine load failure as a failed load", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(noop);
+    const loadItems = vi.fn();
+    const obj = new KubeObject({
+      apiVersion: "v1",
+      kind: "Foo",
+      metadata: {
+        name: "some-obj-name",
+        resourceVersion: "1",
+        uid: "some-uid",
+        selfLink: "/some/self/link",
+      },
+    });
+    const store = new FakeKubeObjectStore(loadItems, {
+      isNamespaced: false,
+    });
+
+    loadItems.mockImplementationOnce(() => [obj]);
+
+    await store.loadAll({});
+
+    expect(store.items).toContain(obj);
+
+    loadItems.mockImplementationOnce(() => {
+      throw new Error("boom");
+    });
+
+    const result = await store.loadAll({});
+
+    expect(result).toBeUndefined();
+    // a real failure still resets the store and flags the failure
+    expect(store.items).not.toContain(obj);
+    expect(store.failedLoading).toBe(true);
+    expect(warnSpy).toHaveBeenCalled();
+
+    warnSpy.mockRestore();
   });
 });
