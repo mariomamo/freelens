@@ -32,9 +32,9 @@ import installedExtensionsByNameInjectable from "./user-extensions/installed-ext
 
 import type { InstalledExtension } from "@freelensapp/legacy-extensions";
 
-import type { IAsyncComputed } from "@ogre-tools/injectable-react";
 import type { IComputedValue } from "mobx";
 
+import type { IAsyncComputed } from "../../../common/utils/async-computed";
 import type { ExtensionInstallationStateStore } from "../../../extensions/extension-installation-state-store/extension-installation-state-store";
 import type { ConfirmUninstallExtension } from "./confirm-uninstall-extension.injectable";
 import type { DisableExtension } from "./disable-extension.injectable";

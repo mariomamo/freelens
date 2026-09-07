@@ -5,7 +5,7 @@
  */
 
 import { getInjectable } from "@ogre-tools/injectable";
-import { asyncComputed } from "@ogre-tools/injectable-react";
+import { asyncComputed } from "../../../../common/utils/async-computed";
 import requestMarketplaceExtensionsInjectable from "./request-marketplace-extensions.injectable";
 
 export interface MarketplaceExtensionAuthor {
