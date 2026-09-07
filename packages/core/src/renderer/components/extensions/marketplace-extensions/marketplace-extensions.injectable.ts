@@ -8,14 +8,22 @@ import { getInjectable } from "@ogre-tools/injectable";
 import { asyncComputed } from "@ogre-tools/injectable-react";
 import requestMarketplaceExtensionsInjectable from "./request-marketplace-extensions.injectable";
 
+export interface MarketplaceExtensionAuthor {
+  name: string;
+  surname?: string;
+  github?: string;
+  website?: string;
+  email?: string;
+}
+
 export interface MarketplaceExtension {
   id: string;
   name: string;
   description: string;
   version: string;
   status: "official" | "community";
-  author?: string;
-  downloads?: number;
+  repository?: string;
+  authors?: MarketplaceExtensionAuthor[];
 }
 
 const marketplaceExtensionsInjectable = getInjectable({

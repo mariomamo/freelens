@@ -4,108 +4,114 @@
  * Licensed under MIT License. See LICENSE in root directory for more information.
  */
 
-import { Icon } from "@freelensapp/icon";
 import React from "react";
-import { MenuActions, MenuItem } from "../menu";
+import { ExtensionActionButton, type ExtensionActionState } from "./extension-action-button";
+import { ExtensionAuthors } from "./extension-authors";
 import styles from "./extension-card.module.scss";
+import { ExtensionCardMenu } from "./extension-card-menu";
+import { ExtensionIcon } from "./extension-icon";
+import { ExtensionPackageTitle } from "./extension-package-title";
+import { ExtensionStatusBadge } from "./extension-status-badge";
+import { ExtensionVersionPill } from "./extension-version-pill";
 
-type ExtensionStatus = "official" | "community";
+import type { InstalledExtension } from "@freelensapp/legacy-extensions";
 
-type BaseExtensionCardProps = {
-  id: string;
-  name: string;
-  description: string;
-  version: string;
-  status?: ExtensionStatus;
-};
+import type { MarketplaceExtension } from "./marketplace-extensions/marketplace-extensions.injectable";
 
-type InstalledExtensionCardProps = BaseExtensionCardProps & {
-  variant: "installed";
-  isEnabled?: boolean;
-  isCompatible?: boolean;
-  isUninstalling?: boolean;
-  onUninstall: () => void;
-  onToggle: () => void;
-};
-
-type MarketplaceExtensionCardProps = BaseExtensionCardProps & {
+interface MarketplaceCardProps {
   variant: "marketplace";
+  extension: MarketplaceExtension;
+  installedExtension?: InstalledExtension;
+  isInstalling?: boolean;
+  isUninstalling?: boolean;
+  isDisabled?: boolean;
   onInstall: () => void;
+  onUninstall: () => void;
+  onDisable: () => void;
+  onEnable: () => void;
+}
+
+interface InstalledCardProps {
+  variant: "installed";
+  extension: InstalledExtension;
+  isInstalling?: boolean;
+  isUninstalling?: boolean;
+  isDisabled?: boolean;
+  onUninstall: () => void;
+  onDisable: () => void;
+  onEnable: () => void;
+}
+
+export type ExtensionCardProps = MarketplaceCardProps | InstalledCardProps;
+
+const deriveCtaState = (props: ExtensionCardProps): ExtensionActionState => {
+  if (props.isInstalling) return "installing";
+  if (props.isUninstalling) return "uninstalling";
+  if (props.variant === "installed") return "uninstall";
+  if (props.installedExtension) return "uninstall";
+  return "install";
 };
 
-export type ExtensionCardProps = InstalledExtensionCardProps | MarketplaceExtensionCardProps;
-
-const isInstalledVariant = (props: ExtensionCardProps): props is InstalledExtensionCardProps => {
-  return props.variant === "installed";
-};
+const deriveCardTestId = (props: ExtensionCardProps): string =>
+  props.variant === "installed" || (props.variant === "marketplace" && props.installedExtension)
+    ? "installed-extension-card"
+    : "marketplace-extension-card";
 
 export const ExtensionCard: React.FC<ExtensionCardProps> = (props) => {
-  const { id, name, description, version, status } = props;
+  const isMarketplace = props.variant === "marketplace";
+  const isDisabled = props.isDisabled === true;
+  const installedExtension = isMarketplace ? props.installedExtension : props.extension;
+
+  const name = isMarketplace ? props.extension.name : props.extension.manifest.name;
+  const version = isMarketplace ? props.extension.version : props.extension.manifest.version;
+  const description = isMarketplace
+    ? props.extension.description
+    : props.extension.manifest.description || "No description available";
+  const status = isMarketplace ? props.extension.status : "official";
+  const authors = isMarketplace ? (props.extension.authors ?? []) : [];
+
+  const ctaState = deriveCtaState(props);
+  const ctaHandler = isMarketplace
+    ? props.installedExtension
+      ? props.onUninstall
+      : props.onInstall
+    : props.onUninstall;
+
   return (
-    <div className={styles.container}>
-      {/* Three-dot menu - only for installed extensions */}
-      {isInstalledVariant(props) && (
-        <div className={styles.menu}>
-          <MenuActions id={`menu-actions-for-extension-${id}`} usePortal toolbar={false}>
-            {props.isCompatible && (
-              <MenuItem disabled={props.isUninstalling} onClick={props.onToggle}>
-                <Icon material={props.isEnabled ? "unpublished" : "check_circle"} />
-                <span className="title" aria-disabled={props.isUninstalling}>
-                  {props.isEnabled ? "Disable" : "Enable"}
-                </span>
-              </MenuItem>
-            )}
-            <MenuItem disabled={props.isUninstalling} onClick={props.onUninstall}>
-              <Icon material="delete" />
-              <span className="title" aria-disabled={props.isUninstalling}>
-                Uninstall
-              </span>
-            </MenuItem>
-          </MenuActions>
-        </div>
-      )}
-
-      {/* Extension icon and name */}
-      <div className={styles.header}>
-        <div className={styles.icon}>
-          <Icon material="extension" className={styles.iconSvg} />
-        </div>
-        <div className={styles.contentWrap}>
-          <div className={styles.name}>{name}</div>
-        </div>
+    <div className={`${styles.card} ${isDisabled ? styles.disabled : ""}`} data-testid={deriveCardTestId(props)}>
+      {isDisabled && <div className={styles.disabledOverlay} />}
+      <div className={styles.iconColumn}>
+        <ExtensionIcon disabled={isDisabled} />
+        <ExtensionVersionPill version={version} />
       </div>
 
-      {/* Description */}
-      <div className={styles.description}>{description || "No description available"}</div>
-
-      {/* Footer with version and action button */}
-      <div className={styles.footer}>
-        <div className={styles.footerMeta}>
-          <div className={styles.version}>{version}</div>
-          {status && status !== "official" && <div className={styles.status}>Community</div>}
+      <div className={styles.metadata}>
+        <div className={styles.headerRow}>
+          <ExtensionStatusBadge variant={status} />
+          <ExtensionPackageTitle name={name} />
         </div>
-        {isInstalledVariant(props) ? (
-          <button
-            disabled={props.isUninstalling || !props.isCompatible}
-            onClick={props.onUninstall}
-            className={`${styles.button} ${styles.uninstallButton} ${props.isUninstalling ? styles.uninstalling : ""}`}
-          >
-            Uninstall
-          </button>
-        ) : (
-          <button onClick={props.onInstall} className={`${styles.button} ${styles.installButton}`}>
-            Install
-          </button>
-        )}
+        <div className={styles.metaRow}>
+          <ExtensionAuthors authors={authors} disabled={isDisabled} />
+        </div>
+        <p className={`${styles.description} ${isDisabled ? styles.textDisabled : ""}`}>{description}</p>
       </div>
 
-      {/* Status badges - only for installed extensions */}
-      {isInstalledVariant(props) && !props.isCompatible && (
-        <div className={`${styles.badge} ${styles.incompatible}`}>Incompatible</div>
-      )}
-      {isInstalledVariant(props) && !props.isEnabled && props.isCompatible && (
-        <div className={`${styles.badge} ${styles.disabled}`}>Disabled</div>
-      )}
+      <div className={`${styles.footer} ${isDisabled ? styles.footerLifted : ""}`}>
+        <div className={styles.footerTop}>
+          {isDisabled && <span className={styles.statusDisabled}>DISABLED</span>}
+          {installedExtension && (
+            <ExtensionCardMenu
+              id={installedExtension.id}
+              isEnabled={installedExtension.isEnabled}
+              onDisable={props.onDisable}
+              onEnable={props.onEnable}
+            />
+          )}
+        </div>
+        <div className={styles.ctaArea}>
+          <ExtensionActionButton state={ctaState} onClick={ctaHandler} />
+        </div>
+      </div>
     </div>
   );
 };

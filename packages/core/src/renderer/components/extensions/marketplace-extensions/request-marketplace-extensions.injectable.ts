@@ -8,18 +8,27 @@ import { loggerInjectionToken } from "@freelensapp/logger";
 import { getInjectable } from "@ogre-tools/injectable";
 import downloadJsonViaChannelInjectable from "../../../fetch/download-json-via-channel-copy.injectable";
 
-import type { MarketplaceExtension } from "./marketplace-extensions.injectable";
+import type { MarketplaceExtension, MarketplaceExtensionAuthor } from "./marketplace-extensions.injectable";
 
 const extensionListUrl =
-  "https://raw.githubusercontent.com/freelensapp/freelens-marketplace/refs/heads/marketplace-v0/extensions.json";
+  "https://raw.githubusercontent.com/freelensapp/freelens-marketplace/refs/heads/main/extensions.json";
 
 type MarketplacePackageStatus = "official" | "community";
+
+interface MarketplacePackageAuthorFromApi {
+  name: string;
+  surname?: string;
+  github?: string;
+  website?: string;
+  email?: string;
+}
 
 interface MarketplacePackageFromApi {
   name: string;
   description: string;
   version: string;
   status: MarketplacePackageStatus;
+  authors?: MarketplacePackageAuthorFromApi[];
 }
 
 interface MarketplacePackagesResponse {
@@ -34,6 +43,16 @@ const clean = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "_");
 
 const isMarketplacePackageStatus = (value: unknown): value is MarketplacePackageStatus =>
   value === "official" || value === "community";
+
+const isMarketplacePackageAuthorFromApi = (value: unknown): value is MarketplacePackageAuthorFromApi => {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+
+  return typeof candidate.name === "string";
+};
 
 const isMarketplacePackageFromApi = (value: unknown): value is MarketplacePackageFromApi => {
   if (!value || typeof value !== "object") {
@@ -55,14 +74,28 @@ const toMarketplaceExtension = ({
   description,
   version,
   status,
-}: MarketplacePackageFromApi): MarketplaceExtension => ({
-  // id is computed from name and version to ensure uniqueness and stability across updates
-  id: `${clean(name)}-${clean(version)}`,
-  name,
-  description,
-  version,
-  status,
-});
+  authors,
+}: MarketplacePackageFromApi): MarketplaceExtension => {
+  const parsedAuthors: MarketplaceExtensionAuthor[] | undefined = Array.isArray(authors)
+    ? authors.filter(isMarketplacePackageAuthorFromApi).map((author) => ({
+        name: author.name,
+        surname: author.surname,
+        github: author.github,
+        website: author.website,
+        email: author.email,
+      }))
+    : undefined;
+
+  return {
+    // id is computed from name and version to ensure uniqueness and stability across updates
+    id: `${clean(name)}-${clean(version)}`,
+    name,
+    description,
+    version,
+    status,
+    ...(parsedAuthors !== undefined ? { authors: parsedAuthors } : {}),
+  };
+};
 
 const requestMarketplaceExtensionsInjectable = getInjectable({
   id: "request-marketplace-extensions",

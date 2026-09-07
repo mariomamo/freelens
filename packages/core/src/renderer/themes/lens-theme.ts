@@ -133,4 +133,8 @@ export type LensColorName =
   | "navSelectedBackground"
   | "navHoverColor"
   | "hrColor"
-  | "tooltipBackground";
+  | "tooltipBackground"
+  | "cardBackground"
+  | "cardBorder"
+  | "cardTextPrimary"
+  | "cardTextSecondary";

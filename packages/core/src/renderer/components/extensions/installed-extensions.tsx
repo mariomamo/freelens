@@ -3,11 +3,6 @@
  * Copyright (c) OpenLens Authors. All rights reserved.
  * Licensed under MIT License. See LICENSE in root directory for more information.
  */
-/**
- * Copyright (c) Freelens Authors. All rights reserved.
- * Copyright (c) OpenLens Authors. All rights reserved.
- * Licensed under MIT License. See LICENSE in root directory for more information.
- */
 
 import { Icon } from "@freelensapp/icon";
 import { Spinner } from "@freelensapp/spinner";
@@ -20,7 +15,7 @@ import confirmUninstallExtensionInjectable from "./confirm-uninstall-extension.i
 import disableExtensionInjectable from "./disable-extension.injectable";
 import enableExtensionInjectable from "./enable-extension.injectable";
 import { ExtensionCard } from "./extension-card";
-import { ExtensionsGrid } from "./extensions-grid";
+import layoutStyles from "./extensions.module.scss";
 import styles from "./installed-extensions.module.scss";
 import { SearchBar } from "./search-bar";
 import userExtensionsInjectable from "./user-extensions/user-extensions.injectable";
@@ -34,8 +29,6 @@ import type { ExtensionInstallationStateStore } from "../../../extensions/extens
 import type { ConfirmUninstallExtension } from "./confirm-uninstall-extension.injectable";
 import type { DisableExtension } from "./disable-extension.injectable";
 import type { EnableExtension } from "./enable-extension.injectable";
-
-export interface InstalledExtensionsProps {}
 
 interface Dependencies {
   extensionDiscovery: ExtensionDiscovery;
@@ -54,15 +47,7 @@ const NonInjectedInstalledExtensions = observer(
     confirmUninstallExtension,
     enableExtension,
     disableExtension,
-  }: Dependencies & InstalledExtensionsProps) => {
-    if (!extensionDiscovery.isLoaded) {
-      return (
-        <div>
-          <Spinner center />
-        </div>
-      );
-    }
-
+  }: Dependencies) => {
     const [searchQuery, setSearchQuery] = useState("");
     const extensions = userExtensions.get();
 
@@ -76,6 +61,14 @@ const NonInjectedInstalledExtensions = observer(
       );
     }, [extensions, searchQuery]);
 
+    if (!extensionDiscovery.isLoaded) {
+      return (
+        <div>
+          <Spinner center />
+        </div>
+      );
+    }
+
     if (extensions.length === 0) {
       return (
         <div className="flex column h-full items-center justify-center">
@@ -86,51 +79,40 @@ const NonInjectedInstalledExtensions = observer(
       );
     }
 
-    const toggleExtensionWith = (enabled: boolean) => (enabled ? disableExtension : enableExtension);
-
     return (
       <section data-testid="extensions-table">
         <SearchBar value={searchQuery} onChange={setSearchQuery} placeholder="Search..." />
-        <ExtensionsGrid>
+        <div className={layoutStyles.grid}>
           {filteredExtensions.map((extension) => {
-            const { id, isEnabled, isCompatible, manifest } = extension;
-            const { name, description, version } = manifest;
+            const { id, isEnabled } = extension;
             const isUninstalling = extensionInstallationStateStore.isExtensionUninstalling(id);
-            const toggleExtension = toggleExtensionWith(isEnabled);
 
             return (
               <ExtensionCard
-                key={id}
+                key={extension.id}
                 variant="installed"
-                id={id}
-                name={name}
-                description={description || "No description available"}
-                version={version}
-                isEnabled={isEnabled}
-                isCompatible={isCompatible}
+                extension={extension}
                 isUninstalling={isUninstalling}
+                isDisabled={isEnabled === false}
                 onUninstall={() => confirmUninstallExtension(extension)}
-                onToggle={() => toggleExtension(id)}
+                onDisable={() => disableExtension(id)}
+                onEnable={() => enableExtension(id)}
               />
             );
           })}
-        </ExtensionsGrid>
+        </div>
       </section>
     );
   },
 );
 
-export const InstalledExtensions = withInjectables<Dependencies, InstalledExtensionsProps>(
-  NonInjectedInstalledExtensions,
-  {
-    getProps: (di, props) => ({
-      ...props,
-      extensionDiscovery: di.inject(extensionDiscoveryInjectable),
-      extensionInstallationStateStore: di.inject(extensionInstallationStateStoreInjectable),
-      userExtensions: di.inject(userExtensionsInjectable),
-      enableExtension: di.inject(enableExtensionInjectable),
-      disableExtension: di.inject(disableExtensionInjectable),
-      confirmUninstallExtension: di.inject(confirmUninstallExtensionInjectable),
-    }),
-  },
-);
+export const InstalledExtensions = withInjectables<Dependencies>(NonInjectedInstalledExtensions, {
+  getProps: (di) => ({
+    extensionDiscovery: di.inject(extensionDiscoveryInjectable),
+    extensionInstallationStateStore: di.inject(extensionInstallationStateStoreInjectable),
+    userExtensions: di.inject(userExtensionsInjectable),
+    enableExtension: di.inject(enableExtensionInjectable),
+    disableExtension: di.inject(disableExtensionInjectable),
+    confirmUninstallExtension: di.inject(confirmUninstallExtensionInjectable),
+  }),
+});

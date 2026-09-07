@@ -1,0 +1,17 @@
+.pill {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  background-color: rgba(30, 41, 59, 0.4);
+  border-radius: 0.375rem;
+  padding: 0.125rem 0.375rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  color: var(--cardTextPrimary);
+}
+
+:global(body.theme-light) .pill {
+  background-color: transparent;
+  border-color: #000000;
+  color: var(--cardTextPrimary);
+}

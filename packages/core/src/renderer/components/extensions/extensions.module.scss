@@ -35,3 +35,10 @@
   color: var(--textColorSecondary);
   border-bottom: 2px solid transparent;
 }
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}

@@ -6,7 +6,6 @@
 
 import "@testing-library/jest-dom";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
-import assert from "assert";
 import { observable, when } from "mobx";
 import React from "react";
 import directoryForDownloadsInjectable from "../../../../common/app-paths/directory-for-downloads/directory-for-downloads.injectable";
@@ -84,7 +83,7 @@ describe("Extensions", () => {
     }
   });
 
-  it("disables uninstall and disable buttons while uninstalling", async () => {
+  it("disables uninstall button while uninstalling", async () => {
     extensionDiscovery.isLoaded = true;
 
     render(
@@ -94,48 +93,18 @@ describe("Extensions", () => {
       </>,
     );
 
-    const section = await screen.findByTestId("extensions-table");
-    const findMenuTriggerFor = (name: string) => {
-      const title = within(section).getByText(name);
-      let el: HTMLElement | null = title as HTMLElement;
+    const card = await screen.findByTestId("installed-extension-card");
+    const uninstallButton = within(card).getByRole("button", { name: /uninstall/i });
+    fireEvent.click(uninstallButton);
 
-      while (el && el !== section) {
-        const trigger = el.querySelector(".Icon");
-        if (trigger) return trigger;
-        el = el.parentElement;
-      }
-
-      return null;
-    };
-
-    const menuTrigger = findMenuTriggerFor("test");
-    assert(menuTrigger);
-    // Try clicking the menu trigger; if the click is missed due to mount ordering, fall back to keyboard activation
-    // Click visible uninstall button in the card footer (menu items may be in portal)
-    const uninstallFooterButton = within(section).getByText("Uninstall").closest("button");
-    assert(uninstallFooterButton);
-    fireEvent.click(uninstallFooterButton as Element);
-
-    // Approve confirm dialog
     fireEvent.click(await screen.findByText("Yes"));
 
     await waitFor(
-      async () => {
+      () => {
         expect(extensionDiscovery.uninstallExtension).toHaveBeenCalled();
-
-        // Footer uninstall button should be disabled while uninstalling
-        const footerBtnAfter = within(section).getByText("Uninstall").closest("button");
-        expect(footerBtnAfter).toBeDisabled();
-
-        // If menu contains 'Disable' item, it should be disabled too
-        const menuTriggerAfter = findMenuTriggerFor("test");
-        assert(menuTriggerAfter);
-        fireEvent.click(menuTriggerAfter as Element);
-
-        const disableItem = screen.queryByText("Disable");
-        if (disableItem) {
-          expect(disableItem).toHaveAttribute("aria-disabled", "true");
-        }
+        const button = within(card).getByRole("button");
+        expect(button).toBeDisabled();
+        expect(button.querySelector(".Spinner")).toBeInTheDocument();
       },
       {
         timeout: 30000,

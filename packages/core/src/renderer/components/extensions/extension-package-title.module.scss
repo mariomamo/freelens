@@ -1,0 +1,22 @@
+.title {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scope {
+  color: var(--cardTextSecondary);
+  flex-shrink: 0;
+}
+
+.pkgName {
+  color: var(--cardTextPrimary);
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

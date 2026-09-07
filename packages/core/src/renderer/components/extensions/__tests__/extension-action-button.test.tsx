@@ -1,0 +1,30 @@
+import "@testing-library/jest-dom";
+import { render, screen } from "@testing-library/react";
+import React from "react";
+import { ExtensionActionButton } from "../extension-action-button";
+
+describe("ExtensionActionButton", () => {
+  it("renders Install label for install state", () => {
+    render(<ExtensionActionButton state="install" onClick={() => {}} />);
+    expect(screen.getByRole("button", { name: "Install" })).toBeInTheDocument();
+  });
+
+  it("renders Uninstall label for uninstall state", () => {
+    render(<ExtensionActionButton state="uninstall" onClick={() => {}} />);
+    expect(screen.getByRole("button", { name: "Uninstall" })).toBeInTheDocument();
+  });
+
+  it("renders disabled with spinner for installing state", () => {
+    render(<ExtensionActionButton state="installing" onClick={() => {}} />);
+    const button = screen.getByRole("button");
+    expect(button).toBeDisabled();
+    expect(button.querySelector(".Spinner")).toBeInTheDocument();
+  });
+
+  it("invokes onClick when not disabled", () => {
+    const onClick = jest.fn();
+    render(<ExtensionActionButton state="install" onClick={onClick} />);
+    screen.getByRole("button").click();
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+});
