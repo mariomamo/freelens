@@ -13,9 +13,9 @@ import type { MarketplaceExtension, MarketplaceExtensionAuthor } from "./marketp
 const extensionListUrl =
   "https://raw.githubusercontent.com/freelensapp/freelens-marketplace/refs/heads/main/extensions.json";
 
-type MarketplacePackageStatus = "official" | "community";
+type MarketplaceExtensionStatus = "official" | "community";
 
-interface MarketplacePackageAuthorFromApi {
+interface MarketplaceAuthor {
   name: string;
   surname?: string;
   github?: string;
@@ -23,28 +23,28 @@ interface MarketplacePackageAuthorFromApi {
   email?: string;
 }
 
-interface MarketplacePackageFromApi {
+interface MarketplaceExtensionEntry {
   name: string;
   description: string;
   version: string;
-  status: MarketplacePackageStatus;
-  authors?: MarketplacePackageAuthorFromApi[];
+  status: MarketplaceExtensionStatus;
+  authors?: MarketplaceAuthor[];
 }
 
-interface MarketplacePackagesResponse {
+interface MarketplaceExtensionsResponse {
   meta: {
     version: number;
   };
-  extensions: MarketplacePackageFromApi[];
+  extensions: MarketplaceExtensionEntry[];
 }
 
 // first change to lowercase then replace non-alphanumeric characters with underscores to create a id
 const clean = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "_");
 
-const isMarketplacePackageStatus = (value: unknown): value is MarketplacePackageStatus =>
+const isMarketplaceExtensionStatus = (value: unknown): value is MarketplaceExtensionStatus =>
   value === "official" || value === "community";
 
-const isMarketplacePackageAuthorFromApi = (value: unknown): value is MarketplacePackageAuthorFromApi => {
+const isMarketplaceAuthor = (value: unknown): value is MarketplaceAuthor => {
   if (!value || typeof value !== "object") {
     return false;
   }
@@ -54,7 +54,7 @@ const isMarketplacePackageAuthorFromApi = (value: unknown): value is Marketplace
   return typeof candidate.name === "string";
 };
 
-const isMarketplacePackageFromApi = (value: unknown): value is MarketplacePackageFromApi => {
+const isMarketplaceExtensionEntry = (value: unknown): value is MarketplaceExtensionEntry => {
   if (!value || typeof value !== "object") {
     return false;
   }
@@ -65,7 +65,7 @@ const isMarketplacePackageFromApi = (value: unknown): value is MarketplacePackag
     typeof candidate.name === "string" &&
     typeof candidate.description === "string" &&
     typeof candidate.version === "string" &&
-    isMarketplacePackageStatus(candidate.status)
+    isMarketplaceExtensionStatus(candidate.status)
   );
 };
 
@@ -75,9 +75,9 @@ const toMarketplaceExtension = ({
   version,
   status,
   authors,
-}: MarketplacePackageFromApi): MarketplaceExtension => {
+}: MarketplaceExtensionEntry): MarketplaceExtension => {
   const parsedAuthors: MarketplaceExtensionAuthor[] | undefined = Array.isArray(authors)
-    ? authors.filter(isMarketplacePackageAuthorFromApi).map((author) => ({
+    ? authors.filter(isMarketplaceAuthor).map((author) => ({
         name: author.name,
         surname: author.surname,
         github: author.github,
@@ -115,10 +115,10 @@ const requestMarketplaceExtensionsInjectable = getInjectable({
         return [];
       }
 
-      const response = result.response as Partial<MarketplacePackagesResponse>;
+      const response = result.response as Partial<MarketplaceExtensionsResponse>;
       const extensions = Array.isArray(response.extensions) ? response.extensions : [];
 
-      return extensions.filter(isMarketplacePackageFromApi).map(toMarketplaceExtension);
+      return extensions.filter(isMarketplaceExtensionEntry).map(toMarketplaceExtension);
     };
   },
 
