@@ -14,10 +14,10 @@ import extensionInstallationStateStoreInjectable from "../../../extensions/exten
 import confirmUninstallExtensionInjectable from "./confirm-uninstall-extension.injectable";
 import disableExtensionInjectable from "./disable-extension.injectable";
 import enableExtensionInjectable from "./enable-extension.injectable";
-import { ExtensionCard } from "./extension-card";
+import { ExtensionCard } from "./extension-card/extension-card";
 import layoutStyles from "./extensions.module.scss";
 import styles from "./installed-extensions.module.scss";
-import { SearchBar } from "./search-bar";
+import { SearchBar } from "./search-bar/search-bar";
 import userExtensionsInjectable from "./user-extensions/user-extensions.injectable";
 
 import type { IComputedValue } from "mobx";

@@ -18,7 +18,7 @@ import styles from "./extensions.module.scss";
 import { ExtensionInstall } from "./install";
 import installOnDropInjectable from "./install-on-drop.injectable";
 import { InstalledExtensions } from "./installed-extensions";
-import { MarketplaceExtensions } from "./marketplace-extensions";
+import { MarketplaceExtensions } from "./marketplace-extensions/marketplace-extensions";
 import { Notice } from "./notice";
 
 import type { InstallOnDrop } from "./install-on-drop.injectable";

@@ -1,12 +1,20 @@
-import { Spinner } from "@freelensapp/spinner";
-import React from "react";
+/**
+ * Copyright (c) Freelens Authors. All rights reserved.
+ * Licensed under MIT License. See LICENSE in root directory for more information.
+ */
+
 import styles from "./extension-action-button.module.scss";
 
-export type ExtensionActionState = "install" | "uninstall" | "installing" | "uninstalling" | "update" | "updating";
+import type { ExtensionActionState } from "./extension-action-button";
 
-export interface ExtensionActionButtonProps {
+export interface UseExtensionActionButtonArgs {
   state: ExtensionActionState;
-  onClick: () => void;
+}
+
+export interface UseExtensionActionButtonResult {
+  label: string;
+  variantClass: string;
+  isSpinnerState: boolean;
 }
 
 const labelFor = (state: ExtensionActionState): string => {
@@ -37,17 +45,10 @@ const variantClassFor = (state: ExtensionActionState): string => {
   }
 };
 
-export const ExtensionActionButton: React.FC<ExtensionActionButtonProps> = ({ state, onClick }) => {
+export const useExtensionActionButton = ({ state }: UseExtensionActionButtonArgs): UseExtensionActionButtonResult => {
+  const label = labelFor(state);
+  const variantClass = variantClassFor(state);
   const isSpinnerState = state === "installing" || state === "uninstalling" || state === "updating";
 
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={isSpinnerState}
-      className={`${styles.button} ${variantClassFor(state)} ${isSpinnerState ? styles.spinnerOnly : ""}`}
-    >
-      {isSpinnerState ? <Spinner className={styles.spinner} /> : labelFor(state)}
-    </button>
-  );
+  return { label, variantClass, isSpinnerState };
 };

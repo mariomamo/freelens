@@ -1,10 +1,10 @@
 import "@testing-library/jest-dom";
 import { fireEvent, screen } from "@testing-library/react";
 import React from "react";
-import openLinkInBrowserInjectable from "../../../../common/utils/open-link-in-browser.injectable";
-import { getDiForUnitTesting } from "../../../getDiForUnitTesting";
-import { renderFor } from "../../test-utils/renderFor";
-import { ExtensionPackageTitle } from "../extension-package-title";
+import openLinkInBrowserInjectable from "../../../../../common/utils/open-link-in-browser.injectable";
+import { getDiForUnitTesting } from "../../../../getDiForUnitTesting";
+import { renderFor } from "../../../test-utils/renderFor";
+import { ExtensionPackageTitle } from "./extension-package-title";
 
 describe("ExtensionPackageTitle", () => {
   let di: ReturnType<typeof getDiForUnitTesting>;

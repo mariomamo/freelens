@@ -1,14 +1,16 @@
 import { Icon } from "@freelensapp/icon";
 import { withInjectables } from "@ogre-tools/injectable-react";
-import React, { Fragment, useCallback, useEffect, useRef, useState } from "react";
-import openLinkInBrowserInjectable from "../../../common/utils/open-link-in-browser.injectable";
+import React, { Fragment } from "react";
+import openLinkInBrowserInjectable from "../../../../../common/utils/open-link-in-browser.injectable";
 import { authorKey, avatarClassFor, fullNameOf, initialsOf, toHttpUrl } from "./extension-author-helpers";
 import styles from "./extension-authors.module.scss";
-import { ExtensionCollaboratorsPopover } from "./extension-collaborators-popover";
-import { GithubIcon } from "./github-icon";
+import { ExtensionCollaboratorsPopover } from "./extension-collaborators-popover/extension-collaborators-popover";
+import { GithubIcon } from "./github-icon/github-icon";
+import { useAuthorItem } from "./use-author-item.hook";
+import { useExtensionAuthors } from "./use-extension-authors.hook";
 
-import type { OpenLinkInBrowser } from "../../../common/utils/open-link-in-browser.injectable";
-import type { MarketplaceExtensionAuthor } from "./marketplace-extensions/marketplace-extensions.injectable";
+import type { OpenLinkInBrowser } from "../../../../../common/utils/open-link-in-browser.injectable";
+import type { MarketplaceExtensionAuthor } from "../../marketplace-extensions/marketplace-extensions.injectable";
 
 export interface ExtensionAuthorsProps {
   authors: MarketplaceExtensionAuthor[];
@@ -58,25 +60,11 @@ const AuthorItem: React.FC<{
   disabled?: boolean;
   openLinkInBrowser: OpenLinkInBrowser;
 }> = ({ author, disabled, openLinkInBrowser }) => {
-  const [isHovered, setIsHovered] = useState(false);
-  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
-
-  useEffect(() => {
-    return () => clearTimeout(hideTimeoutRef.current);
-  }, []);
-
-  const handleMouseEnter = () => {
-    clearTimeout(hideTimeoutRef.current);
-
-    if (!disabled && hasLinks(author)) {
-      setIsHovered(true);
-    }
-  };
-
-  const handleMouseLeave = () => {
-    // keep the tooltip open briefly so the mouse has time to reach it
-    hideTimeoutRef.current = setTimeout(() => setIsHovered(false), 60);
-  };
+  const { isHovered, handleMouseEnter, handleMouseLeave } = useAuthorItem({
+    author,
+    disabled,
+    hasLinks: hasLinks(author),
+  });
 
   return (
     <span
@@ -101,15 +89,9 @@ const NonInjectedExtensionAuthors = ({
   disabled,
   openLinkInBrowser,
 }: ExtensionAuthorsProps & Dependencies) => {
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-
-  const handleDismiss = useCallback(() => setIsPopoverOpen(false), []);
-  const handleToggle = useCallback(() => setIsPopoverOpen((open) => !open), []);
+  const { isPopoverOpen, handleDismiss, handleToggle, visible, remaining } = useExtensionAuthors({ authors });
 
   if (authors.length === 0) return null;
-
-  const visible = authors.slice(0, 2);
-  const remaining = authors.length - visible.length;
 
   return (
     <div className={styles.row}>

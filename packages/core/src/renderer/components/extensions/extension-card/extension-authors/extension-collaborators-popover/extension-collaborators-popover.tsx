@@ -1,14 +1,16 @@
 import { Icon } from "@freelensapp/icon";
 import { withTooltip } from "@freelensapp/tooltip";
 import { withInjectables } from "@ogre-tools/injectable-react";
-import React, { useEffect, useRef, useState } from "react";
-import openLinkInBrowserInjectable from "../../../common/utils/open-link-in-browser.injectable";
-import { authorKey, avatarClassFor, fullNameOf, initialsOf, toHttpUrl } from "./extension-author-helpers";
+import React from "react";
+import openLinkInBrowserInjectable from "../../../../../../common/utils/open-link-in-browser.injectable";
+import { authorKey, avatarClassFor, fullNameOf, initialsOf, toHttpUrl } from "../extension-author-helpers";
+import { GithubIcon } from "../github-icon/github-icon";
 import styles from "./extension-collaborators-popover.module.scss";
-import { GithubIcon } from "./github-icon";
+import { useAuthorName } from "./use-author-name.hook";
+import { useExtensionCollaboratorsPopover } from "./use-extension-collaborators-popover.hook";
 
-import type { OpenLinkInBrowser } from "../../../common/utils/open-link-in-browser.injectable";
-import type { MarketplaceExtensionAuthor } from "./marketplace-extensions/marketplace-extensions.injectable";
+import type { OpenLinkInBrowser } from "../../../../../../common/utils/open-link-in-browser.injectable";
+import type { MarketplaceExtensionAuthor } from "../../../marketplace-extensions/marketplace-extensions.injectable";
 
 export interface ExtensionCollaboratorsPopoverProps {
   authors: MarketplaceExtensionAuthor[];
@@ -27,16 +29,7 @@ const TooltipableName = withTooltip(({ className, children, ...elemProps }: Reac
 ));
 
 const AuthorName: React.FC<{ name: string }> = ({ name }) => {
-  const ref = useRef<HTMLSpanElement>(null);
-  const [needsTooltip, setNeedsTooltip] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-
-    if (el) {
-      setNeedsTooltip(el.scrollWidth > el.clientWidth);
-    }
-  }, [name]);
+  const { ref, needsTooltip } = useAuthorName({ name });
 
   if (needsTooltip) {
     return (
@@ -59,25 +52,7 @@ const NonInjectedExtensionCollaboratorsPopover = ({
   disabled,
   openLinkInBrowser,
 }: ExtensionCollaboratorsPopoverProps & Dependencies) => {
-  const popoverRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onDismiss();
-    };
-    const handleMouseDown = (e: MouseEvent) => {
-      const target = e.target as Node | null;
-      if (popoverRef.current && target && !popoverRef.current.contains(target)) {
-        onDismiss();
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    document.addEventListener("mousedown", handleMouseDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.removeEventListener("mousedown", handleMouseDown);
-    };
-  }, [onDismiss]);
+  const { popoverRef } = useExtensionCollaboratorsPopover({ onDismiss });
 
   return (
     <div

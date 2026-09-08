@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
 import React from "react";
-import { ExtensionActionButton } from "../extension-action-button";
+import { ExtensionActionButton } from "./extension-action-button";
 
 describe("ExtensionActionButton", () => {
   it("renders Install label for install state", () => {

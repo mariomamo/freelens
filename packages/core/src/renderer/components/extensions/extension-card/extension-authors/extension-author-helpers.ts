@@ -1,4 +1,4 @@
-import type { MarketplaceExtensionAuthor } from "./marketplace-extensions/marketplace-extensions.injectable";
+import type { MarketplaceExtensionAuthor } from "../../marketplace-extensions/marketplace-extensions.injectable";
 
 export const initialsOf = (author: MarketplaceExtensionAuthor): string => {
   const first = author.name[0] ?? "";

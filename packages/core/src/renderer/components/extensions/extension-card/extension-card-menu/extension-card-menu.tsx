@@ -1,6 +1,6 @@
 import { Icon } from "@freelensapp/icon";
 import React from "react";
-import { MenuActions, MenuItem } from "../menu";
+import { MenuActions, MenuItem } from "../../../menu";
 
 export interface ExtensionCardMenuProps {
   id: string;

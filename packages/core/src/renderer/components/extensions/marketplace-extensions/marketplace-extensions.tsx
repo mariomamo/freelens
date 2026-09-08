@@ -7,40 +7,33 @@
 import { Icon } from "@freelensapp/icon";
 import { Spinner } from "@freelensapp/spinner";
 import { withInjectables } from "@ogre-tools/injectable-react";
-import { when } from "mobx";
 import { observer } from "mobx-react";
-import React, { useMemo, useState } from "react";
-import extensionInstallationStateStoreInjectable from "../../../extensions/extension-installation-state-store/extension-installation-state-store.injectable";
-import confirmUninstallExtensionInjectable from "./confirm-uninstall-extension.injectable";
-import disableExtensionInjectable from "./disable-extension.injectable";
-import enableExtensionInjectable from "./enable-extension.injectable";
-import { ExtensionCard } from "./extension-card";
-import layoutStyles from "./extensions.module.scss";
-import installExtensionFromInputInjectable from "./install-extension-from-input.injectable";
-import marketplaceExtensionsInjectable from "./marketplace-extensions/marketplace-extensions.injectable";
+import React from "react";
+import extensionInstallationStateStoreInjectable from "../../../../extensions/extension-installation-state-store/extension-installation-state-store.injectable";
+import confirmUninstallExtensionInjectable from "../confirm-uninstall-extension.injectable";
+import disableExtensionInjectable from "../disable-extension.injectable";
+import enableExtensionInjectable from "../enable-extension.injectable";
+import { ExtensionCard } from "../extension-card/extension-card";
+import layoutStyles from "../extensions.module.scss";
+import installExtensionFromInputInjectable from "../install-extension-from-input.injectable";
+import { SearchBar } from "../search-bar/search-bar";
+import installedExtensionsByNameInjectable from "../user-extensions/installed-extensions-by-name.injectable";
+import marketplaceExtensionsInjectable from "./marketplace-extensions.injectable";
 import styles from "./marketplace-extensions.module.scss";
-import {
-  clearMarketplaceInstalling,
-  clearMarketplaceUpdating,
-  isMarketplaceInstalling,
-  isMarketplaceUpdating,
-  markMarketplaceInstalling,
-  markMarketplaceUpdating,
-} from "./marketplace-installing-store";
-import { SearchBar } from "./search-bar";
-import installedExtensionsByNameInjectable from "./user-extensions/installed-extensions-by-name.injectable";
+import { isMarketplaceInstalling, isMarketplaceUpdating } from "./marketplace-installing-store";
+import { useMarketplaceExtensions } from "./use-marketplace-extensions.hook";
 
 import type { InstalledExtension } from "@freelensapp/legacy-extensions";
 
 import type { IComputedValue } from "mobx";
 
-import type { IAsyncComputed } from "../../../common/utils/async-computed";
-import type { ExtensionInstallationStateStore } from "../../../extensions/extension-installation-state-store/extension-installation-state-store";
-import type { ConfirmUninstallExtension } from "./confirm-uninstall-extension.injectable";
-import type { DisableExtension } from "./disable-extension.injectable";
-import type { EnableExtension } from "./enable-extension.injectable";
-import type { InstallExtensionFromInput } from "./install-extension-from-input.injectable";
-import type { MarketplaceExtension } from "./marketplace-extensions/marketplace-extensions.injectable";
+import type { IAsyncComputed } from "../../../../common/utils/async-computed";
+import type { ExtensionInstallationStateStore } from "../../../../extensions/extension-installation-state-store/extension-installation-state-store";
+import type { ConfirmUninstallExtension } from "../confirm-uninstall-extension.injectable";
+import type { DisableExtension } from "../disable-extension.injectable";
+import type { EnableExtension } from "../enable-extension.injectable";
+import type { InstallExtensionFromInput } from "../install-extension-from-input.injectable";
+import type { MarketplaceExtension } from "./marketplace-extensions.injectable";
 
 interface Dependencies {
   installExtensionFromInput: InstallExtensionFromInput;
@@ -62,55 +55,14 @@ const NonInjectedMarketplaceExtensions = observer(
     enableExtension,
     disableExtension,
   }: Dependencies) => {
-    const [searchQuery, setSearchQuery] = useState("");
-
-    const extensions = marketplaceExtensions.value.get();
-    const installedMap = installedExtensionsByName.get();
-
-    const filteredExtensions = useMemo(() => {
-      const lowerCaseQuery = searchQuery.toLowerCase();
-      return extensions.filter(
-        (ext) =>
-          ext.name.toLowerCase().includes(lowerCaseQuery) || ext.description.toLowerCase().includes(lowerCaseQuery),
-      );
-    }, [extensions, searchQuery]);
-
-    const withKey = (ext: MarketplaceExtension) => `${ext.name}@${ext.version}`;
-
-    const onInstall = (ext: MarketplaceExtension) => {
-      const key = withKey(ext);
-      markMarketplaceInstalling(key);
-      void installExtensionFromInput(`${ext.name}@${ext.version}`).finally(() => {
-        clearMarketplaceInstalling(key);
+    const { searchQuery, setSearchQuery, filteredExtensions, installedMap, withKey, onInstall, onUpdate, onUninstall } =
+      useMarketplaceExtensions({
+        marketplaceExtensions,
+        installedExtensionsByName,
+        extensionInstallationStateStore,
+        installExtensionFromInput,
+        confirmUninstallExtension,
       });
-    };
-
-    const onUpdate = (ext: MarketplaceExtension) => {
-      const key = withKey(ext);
-      markMarketplaceUpdating(key);
-
-      // The update flow uninstalls the old version before installing the new one,
-      // so the extension briefly disappears from the installed list.
-      // Keep the "updating" state until the extension is installed again at the target version.
-      void installExtensionFromInput(`${ext.name}@${ext.version}`)
-        .then(() =>
-          when(
-            () => {
-              const installed = installedExtensionsByName.get().get(ext.name);
-
-              return installed?.manifest.version === ext.version;
-            },
-            { timeout: 30_000 },
-          ).catch(() => undefined),
-        )
-        .finally(() => {
-          clearMarketplaceUpdating(key);
-        });
-    };
-
-    const onUninstall = (installed: InstalledExtension) => {
-      void confirmUninstallExtension(installed);
-    };
 
     if (marketplaceExtensions.pending.get()) {
       return (

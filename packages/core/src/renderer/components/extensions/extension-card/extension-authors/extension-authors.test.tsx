@@ -1,12 +1,12 @@
 import "@testing-library/jest-dom";
 import { act, fireEvent, screen, within } from "@testing-library/react";
 import React from "react";
-import openLinkInBrowserInjectable from "../../../../common/utils/open-link-in-browser.injectable";
-import { getDiForUnitTesting } from "../../../getDiForUnitTesting";
-import { renderFor } from "../../test-utils/renderFor";
-import { ExtensionAuthors } from "../extension-authors";
+import openLinkInBrowserInjectable from "../../../../../common/utils/open-link-in-browser.injectable";
+import { getDiForUnitTesting } from "../../../../getDiForUnitTesting";
+import { renderFor } from "../../../test-utils/renderFor";
+import { ExtensionAuthors } from "./extension-authors";
 
-import type { MarketplaceExtensionAuthor } from "../marketplace-extensions/marketplace-extensions.injectable";
+import type { MarketplaceExtensionAuthor } from "../../marketplace-extensions/marketplace-extensions.injectable";
 
 describe("ExtensionAuthors", () => {
   let di: ReturnType<typeof getDiForUnitTesting>;
