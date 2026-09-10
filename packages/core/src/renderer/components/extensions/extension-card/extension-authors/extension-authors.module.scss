@@ -180,3 +180,37 @@
 .open .chevron {
   transform: rotate(180deg);
 }
+
+:global(body.theme-light) .trigger {
+  background-color: transparent;
+  border-color: #cbd5e1;
+  color: #0d9488;
+}
+
+:global(body.theme-light) .trigger:hover {
+  background-color: transparent;
+}
+
+:global(body.theme-light) .authorTooltip {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.15);
+}
+
+:global(body.theme-light) .authorTooltip::after {
+  background-color: #ffffff;
+  border-left-color: #e2e8f0;
+  border-top-color: #e2e8f0;
+}
+
+:global(body.theme-light) .tooltipRow {
+  color: #0f172a;
+}
+
+:global(body.theme-light) .tooltipRow:hover {
+  background-color: #f1f5f9;
+}
+
+:global(body.theme-light) .tooltipIcon {
+  color: #475569;
+}
