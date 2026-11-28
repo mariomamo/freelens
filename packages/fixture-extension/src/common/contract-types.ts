@@ -194,8 +194,8 @@ export type VirtualListRefTakesItsAlign = Holds<
   Parameters<FixtureVirtualListRef["scrollToItem"]>[1] extends FixtureVirtualListAlign ? true : false
 >;
 
-// The overview cards are function components, a value only, and their props
-// are types only, so no name is a pair. The props type an extension's own data
+// The overview cards and the status chart are function components, a value
+// only, and their props are types only, so no name is a pair. The props type an extension's own data
 // and have to be what the component takes.
 export type FixtureCapacityCardProps = Renderer.Component.CapacityCardProps;
 export type FixtureCapacityCardLabels = Renderer.Component.CapacityCardLabels;
@@ -207,6 +207,23 @@ export type CapacityCardTakesItsProps = Holds<
 >;
 export type StatusCardTakesItsProps = Holds<
   Parameters<typeof Renderer.Component.StatusCard>[0] extends FixtureStatusCardProps ? true : false
+>;
+// The status chart takes the props of the status card, so that an extension
+// renders the same data as either by the overview style.
+export type FixtureStatusChartProps = Renderer.Component.StatusChartProps;
+export type StatusChartPropsAreStatusCardProps = Holds<
+  FixtureStatusChartProps extends FixtureStatusCardProps
+    ? FixtureStatusCardProps extends FixtureStatusChartProps
+      ? true
+      : false
+    : false
+>;
+export type StatusChartTakesItsProps = Holds<
+  Parameters<typeof Renderer.Component.StatusChart>[0] extends FixtureStatusChartProps
+    ? FixtureStatusChartProps extends Parameters<typeof Renderer.Component.StatusChart>[0]
+      ? true
+      : false
+    : false
 >;
 export type FixtureOverviewStyle = ReturnType<typeof Common.App.Preferences.getOverviewStyle>;
 export type OverviewStyleIsCardsOrCharts = Holds<

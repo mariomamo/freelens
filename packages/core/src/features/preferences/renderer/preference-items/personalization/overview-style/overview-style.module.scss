@@ -75,17 +75,16 @@ $stage-width: 240px;
   --stage-height: 264px;
 }
 
+// The panel the overview draws its rings on. The title of a ring of the overview is a link, which
+// the preview shows without the button, so that nothing in it can be focused.
 .chart {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   padding-top: 16px;
   background: var(--contentColor);
-}
 
-.chartTitle {
-  margin-bottom: 4px;
-  color: var(--colorInfo);
+  :global(.StatusChart-title) {
+    border-bottom: 1px dotted;
+    color: var(--colorInfo);
+  }
 }
 
 .label {

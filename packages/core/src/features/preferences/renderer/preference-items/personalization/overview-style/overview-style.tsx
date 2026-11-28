@@ -7,8 +7,7 @@ import { cssNames } from "@freelensapp/utilities";
 import { withInjectables } from "@ogre-tools/injectable-react";
 import { observer } from "mobx-react";
 import { SubTitle } from "../../../../../../renderer/components/layout/sub-title";
-import { StatusCard } from "../../../../../../renderer/components/overview-cards";
-import { WorkloadStatusChart } from "../../../../../../renderer/components/workloads-overview/overview-workload-status";
+import { StatusCard, StatusChart } from "../../../../../../renderer/components/overview-cards";
 import { toStatusCardStatuses } from "../../../../../../renderer/components/workloads-overview/workload-status-cards";
 import overviewStyleInjectable from "../../../../../user-preferences/common/overview-style.injectable";
 import userPreferencesStateInjectable from "../../../../../user-preferences/common/state.injectable";
@@ -29,14 +28,12 @@ interface Dependencies {
 // The same pods in both previews, so that they compare the two styles and nothing else.
 const sampleTitle = "Pods";
 const sampleStatus: WorkloadStatus = { running: 12, pending: 2, failed: 1 };
-const sampleTotal = 15;
 
 const CardsPreview = () => <StatusCard title={sampleTitle} statuses={toStatusCardStatuses(sampleStatus)} />;
 
 const ChartsPreview = () => (
   <div className={styles.chart}>
-    <div className={styles.chartTitle}>{`${sampleTitle} (${sampleTotal})`}</div>
-    <WorkloadStatusChart status={sampleStatus} />
+    <StatusChart title={sampleTitle} statuses={toStatusCardStatuses(sampleStatus)} />
   </div>
 );
 

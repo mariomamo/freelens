@@ -553,18 +553,36 @@ way with the components the overviews render:
   `StatusCardStatus` has a `label`, a `count`, a CSS `color` and a `tone`
   (`StatusCardTone`): `healthy` statuses make the healthy share, `failing` ones
   the number that fail.
+- **`Renderer.Component.StatusChart`** shows the same as a status card the
+  way the Charts style does: the title with the total in parentheses
+  (`Pods (39)`), a ring of the statuses, and a legend below it with the
+  `label` and the count of each status. Its props, `StatusChartProps`, are
+  `StatusCardProps`, so the same data renders as either. A status chart draws
+  no panel of its own: the overviews draw their rings on a shared panel, and
+  an extension places the chart on a panel of its own. With an `onClick`, the
+  title is a button that calls it, drawn as a link; the ring is not a button.
+  Without items, the ring is grey and the legend gives way to the
+  `emptyText`, or to the `noStatusText` when there are items without a
+  status. The chart accepts the `tone` of a status and does not show it: it
+  has no healthy share and no failing count.
 - **`Common.App.Preferences.getOverviewStyle()`** returns `"charts"`, the
   default, or `"cards"`. It is observable: an `observer` component that calls
-  it renders again when the user switches.
+  it renders again when the user switches, so it renders a `StatusChart` for
+  `"charts"` and a `StatusCard` for `"cards"` from the same props.
 
 The props are the contract, not the shape of the host's metrics or stores, and
 both are plain data with no host type in them. The cards take every color from
 the theme ([C10](#c10-styling-and-css)) apart from the `color` of a status,
 which is what the extension gives: a theme variable such as `var(--colorOk)`
-keeps the card in step with the theme. Each card is a `<section>` named by its
-title, or a `<button>` when it has an `onClick`. A `data-testid` given to a
-card is the prefix of the test ids of its parts. The cards set no width:
-the host lays them out in a grid of columns at least 200px wide, 16px apart.
+keeps the card in step with the theme. The canvas of a status chart cannot
+draw a CSS color, so the chart resolves the `color` of each status against its
+own element, and again when the active theme changes; a variable the
+extension sets on an element around the chart resolves as well. Each card is
+a `<section>` named by its title, or a `<button>` when it has an `onClick`; a
+status chart is always a `<section>` named by its title. A `data-testid`
+given to a card or a chart is the prefix of the test ids of its parts. The
+cards set no width: the host lays them out in a grid of columns at least
+200px wide, 16px apart.
 They are square panels without a border, drawn in `--contentColor` like the
 other panels of the overviews, so an extension that shows them among panels of
 its own spaces them the same way. A status card that is a button shows the
@@ -573,7 +591,9 @@ outline.
 
 Every part of a card has a class that starts with the name of the card, such
 as `.CapacityCard-title`, `.CapacityCard-legendRow` or `.StatusCard-header`,
-and none has a generic class such as `.header` or `.title`. The styles of the
+and every part of a status chart one that starts with `StatusChart-`, such as
+`.StatusChart-title` or `.StatusChart-legendItem`, and none has a generic
+class such as `.header` or `.title`. The styles of the
 page a card is on therefore do not reach into it, and an extension may restyle
 a part by its class ([C10](#c10-styling-and-css)). The state of a part is a
 data attribute rather than a class: `data-warning` on a legend row of a
@@ -589,6 +609,15 @@ list, closes rather than leaving the card at once, and opens again when the
 status gets items back. A row follows its status by its `label`, so the
 labels of one card are distinct. A closed row is not part of the card: it is
 hidden from screen readers, and has no test id and no `data-failing`.
+
+A status chart animates a change of its statuses in the same way, and not at
+all with reduced motion: the arc of a status grows and shrinks, to no width
+when it has no items, and its legend entry opens and closes. A status keeps
+its place in the ring and the legend while the statuses before it come and go,
+whether they are given with a count of 0 or left out of the list, and a status
+the chart gets for the first time comes after those it has. The tooltip names
+the `label` and the share of the status under the cursor, and never of a
+status without items.
 
 `packages/core/src/extensions/__tests__/extension-api-overview-cards.test.tsx`
 covers the components and the preference as an extension reaches them.
@@ -1065,9 +1094,9 @@ does not ship leaves no error in the renderer console.
 
 **Surface.** One CSS asset next to the renderer entry. The host's shared
 component classes (`.Tooltip`, `.Button`, `.CapacityCard`, `.StatusCard`,
-`.ColorSwatch`, `.OrderableList`, `.VirtualList`, …) are global and part of
-the public API and may be targeted; they must not be redefined. So are the classes of the parts of the overview cards, which start
-with the name of the card (`.CapacityCard-title`, `.StatusCard-legendRow`, …). An extension's own styles
+`.StatusChart`, `.ColorSwatch`, `.OrderableList`, `.VirtualList`, …) are global and part of
+the public API and may be targeted; they must not be redefined. So are the classes of the parts of the overview cards and the status chart, which start
+with the name of the component (`.CapacityCard-title`, `.StatusCard-legendRow`, `.StatusChart-title`, …). An extension's own styles
 belong in CSS Modules.
 
 **Failure mode.** A build that splits CSS per module emits assets the host does

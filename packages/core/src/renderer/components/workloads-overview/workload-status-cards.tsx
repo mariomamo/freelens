@@ -11,7 +11,7 @@ import { StatusCard } from "../overview-cards";
 import { statusBackgroundColorMapping } from "./overview-workload-status";
 import styles from "./workload-status-cards.module.scss";
 
-import type { StatusCardStatus, StatusCardTone } from "../overview-cards";
+import type { StatusCardProps, StatusCardStatus, StatusCardTone } from "../overview-cards";
 import type { WorkloadStatus } from "./overview-workload-status";
 import type { Workload } from "./workloads/workload-injection-token";
 
@@ -79,7 +79,19 @@ const noneText: Record<NamespaceScope, string> = {
   several: "None in these namespaces",
 };
 
-const toTestId = (title: string) => title.toLowerCase().replace(/\s+/g, "-");
+export const toTestId = (title: string) => title.toLowerCase().replace(/\s+/g, "-");
+
+/**
+ * The props of one kind of workload, which its status card and its status chart share: the statuses, the total,
+ * the text of a kind with no items in the namespaces it is counted in, and the list of that kind to open.
+ */
+export const toWorkloadStatusProps = (workload: Workload, namespaceScope: NamespaceScope): StatusCardProps => ({
+  title: workload.title,
+  total: workload.amountOfItems.get(),
+  statuses: toStatusCardStatuses(workload.status.get()),
+  emptyText: noneText[namespaceScope],
+  onClick: workload.open,
+});
 
 interface WorkloadStatusCardProps {
   workload: Workload;
@@ -88,11 +100,7 @@ interface WorkloadStatusCardProps {
 
 const WorkloadStatusCard = observer(({ workload, namespaceScope }: WorkloadStatusCardProps) => (
   <StatusCard
-    title={workload.title}
-    total={workload.amountOfItems.get()}
-    statuses={toStatusCardStatuses(workload.status.get())}
-    emptyText={noneText[namespaceScope]}
-    onClick={workload.open}
+    {...toWorkloadStatusProps(workload, namespaceScope)}
     data-testid={`workload-status-card-${toTestId(workload.title)}`}
   />
 ));

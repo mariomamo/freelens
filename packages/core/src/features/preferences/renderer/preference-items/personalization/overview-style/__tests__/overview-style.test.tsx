@@ -73,7 +73,7 @@ describe("overview style preference", () => {
 
   it("previews the charts with the ring chart of the same sample pods", () => {
     expect(preview("charts")).toHaveTextContent("Pods (15)");
-    expect(preview("charts").querySelector(".OverviewWorkloadStatus .PieChart")).not.toBeNull();
+    expect(preview("charts").querySelector(".StatusChart .PieChart")).not.toBeNull();
     expect(preview("charts")).toHaveTextContent("Running: 12");
     expect(preview("charts")).toHaveTextContent("Pending: 2");
     expect(preview("charts")).toHaveTextContent("Failed: 1");

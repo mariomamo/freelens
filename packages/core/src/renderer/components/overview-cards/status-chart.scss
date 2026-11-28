@@ -1,0 +1,125 @@
+/**
+ * Copyright (c) Freelens Authors. All rights reserved.
+ * Licensed under MIT License. See LICENSE in root directory for more information.
+ */
+
+@use "../vars" as *;
+
+// The chart has no panel of its own: the overviews draw their rings on a shared panel, which tells
+// the Charts style apart from the Cards, and an extension places it on a panel of its own. Its text
+// is the text of the page it is on, apart from a title that is a button, which looks like a link.
+//
+// The class names are public: an extension that renders the chart may restyle it. Every part has a
+// class of its own that starts with `StatusChart-`, so that the styles of the page the chart is on
+// do not reach into it.
+//
+// The legend looks as the legend of a `PieChart`, which the ring does not show. An entry of the
+// legend opens and closes with its status, as a row of the legend of a `StatusCard` does, in the
+// same duration and the same way, and the legend and the empty text take turns the same way.
+// Nothing moves with reduced motion.
+
+$change-duration: 200ms;
+
+.StatusChart {
+  display: block;
+  min-width: 0;
+}
+
+.StatusChart-header {
+  margin-bottom: $margin;
+  text-align: center;
+}
+
+.StatusChart-title:is(button) {
+  padding: 0;
+  border: 0;
+  border-bottom: 1px dotted;
+  background: none;
+  color: var(--colorInfo);
+  font: inherit;
+  line-height: inherit;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+}
+
+.StatusChart-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+// The probe the colors of the statuses are resolved with, never shown.
+.StatusChart-probe {
+  display: none;
+}
+
+.StatusChart-legend {
+  display: flex;
+  flex-direction: column;
+  margin-top: $margin;
+}
+
+// A row of one track that is as tall as its content when open and has no height when collapsed.
+// `visibility` hides the content once it has closed, and shows it as soon as it starts to open.
+.StatusChart-legendEntry {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows $change-duration,
+    opacity $change-duration,
+    visibility $change-duration;
+
+  // A collapsed entry takes no part in the width of the legend, which follows its widest entry and
+  // is centered under the ring: the hidden empty text, or a closed status with a longer name, would
+  // push the open entries to the left of the ring. It still fills the width of the legend.
+  &[data-collapsed] {
+    grid-template-rows: 0fr;
+    width: 0;
+    min-width: 100%;
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+.StatusChart-legendContent {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// The padding spaces the entries, as tall as the rows of the legend of a `StatusCard`.
+.StatusChart-legendItem,
+.StatusChart-empty {
+  max-width: 100%;
+  padding: 0.2rem 0.4rem;
+  line-height: normal;
+}
+
+.StatusChart-legendItem {
+  display: flex;
+  align-items: center;
+}
+
+.StatusChart-swatch {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin-right: $margin;
+  border-radius: 2px;
+}
+
+.StatusChart-empty {
+  display: block;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .StatusChart-legendEntry {
+    transition: none;
+  }
+}

@@ -118,5 +118,23 @@ describe("workload overview", () => {
         });
       });
     });
+
+    // After the cards: every rendering moves on the ids of the drag and drop of the sidebar, which the snapshots
+    // above hold.
+    it("titles the pods pie chart with the number of pods", () => {
+      expect(rendered.getByTestId("workload-overview-status-chart-pods-title")).toHaveTextContent("Pods (0)");
+    });
+
+    it("says there are no pods in any namespace under the pods pie chart", () => {
+      expect(rendered.getByTestId("workload-overview-status-chart-pods-empty")).toHaveTextContent(
+        "None in any namespace",
+      );
+    });
+
+    it("opens the list of pods from the title of the pods pie chart", () => {
+      fireEvent.click(rendered.getByTestId("workload-overview-status-chart-pods-title"));
+
+      expect(builder.applicationWindow.only.di.inject(currentPathInjectable).get()).toBe("/pods");
+    });
   });
 });

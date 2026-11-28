@@ -19,17 +19,9 @@
     grid-gap: $margin;
     padding: $padding * 2;
 
-    .workload {
+    // The rings style themselves, in `../overview-cards/status-chart.scss`.
+    > .StatusChart {
       margin-bottom: $margin * 2;
-
-      > .title {
-        margin-bottom: $margin;
-        text-align: center;
-
-        a {
-          color: var(--colorInfo);
-        }
-      }
     }
   }
 }
