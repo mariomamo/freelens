@@ -567,45 +567,66 @@ exports[`workload overview > when navigating to workload overview > renders 1`] 
                 <div
                   class="workloads"
                 >
-                  <div
-                    class="workload"
+                  <section
+                    aria-label="Pods"
+                    class="StatusChart"
+                    data-testid="workload-overview-status-chart-pods"
                   >
                     <div
-                      class="title"
+                      class="StatusChart-header"
                     >
-                      <a>
+                      <button
+                        class="StatusChart-title"
+                        data-testid="workload-overview-status-chart-pods-title"
+                        type="button"
+                      >
                         Pods (0)
-                      </a>
+                      </button>
                     </div>
                     <div
-                      class="OverviewWorkloadStatus"
+                      class="StatusChart-body"
                     >
+                      <span
+                        class="StatusChart-probe"
+                        hidden=""
+                      />
                       <div
-                        class="flex flex-col items-center grow shrink-0 basis-0"
+                        class="Chart PieChart flex flex-col items-center StatusChart-ring"
+                        data-testid="workload-overview-status-chart-pods-ring"
                       >
                         <div
-                          class="Chart PieChart flex flex-col items-center"
-                          data-testid="workload-overview-status-chart-pods"
+                          class="chart-container"
                         >
+                          <canvas
+                            height="0"
+                            style="display: block; box-sizing: border-box; height: 0px; width: 0px;"
+                            width="0"
+                          />
                           <div
-                            class="chart-container"
-                          >
-                            <canvas
-                              height="0"
-                              style="display: block; box-sizing: border-box; height: 0px; width: 0px;"
-                              width="0"
-                            />
-                            <div
-                              class="chartjs-tooltip flex flex-col"
-                            />
-                          </div>
-                          <div
-                            class="legend flex flex-wrap"
+                            class="chartjs-tooltip flex flex-col"
                           />
                         </div>
                       </div>
+                      <div
+                        class="StatusChart-legend"
+                      >
+                        <div
+                          class="StatusChart-legendEntry"
+                        >
+                          <div
+                            class="StatusChart-legendContent"
+                          >
+                            <span
+                              class="StatusChart-empty"
+                              data-testid="workload-overview-status-chart-pods-empty"
+                            >
+                              None in any namespace
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  </section>
                 </div>
               </div>
             </div>

@@ -23,14 +23,31 @@ import type { LensTheme } from "../../themes/lens-theme";
 
 const componentsDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Each stylesheet with the class of its badge, the warning or error label drawn on a tint of its
-// color, and whether the card can be a button with a hover. The panel and the background of the
-// hover are the ones of `.Card`; a card may add custom properties of its own to the hover.
-const stylesheets = [
+// color, if it has one, and whether the card can be a button with a hover. The panel and the
+// background of the hover are the ones of `.Card`; a card may add custom properties of its own to the
+// hover. The status chart has no panel of its own, and the overviews draw it on a panel in
+// contentColor.
+//
+// `below` lists the text colors known to miss AA, each with the themes it misses it in: the title of
+// a status chart that is a button is a link in the color of the info statuses, as the rings of the
+// workloads overview have always drawn it. The list may only shrink: an entry that reaches AA fails
+// the test until it is removed.
+const stylesheets: {
+  file: string;
+  badge?: string;
+  hasHover: boolean;
+  below?: Record<string, readonly string[]>;
+}[] = [
   { file: "overview-cards/capacity-card.scss", badge: "CapacityCard-overcommit", hasHover: false },
   { file: "overview-cards/status-card.scss", badge: "StatusCard-failing", hasHover: true },
+  {
+    file: "overview-cards/status-chart.scss",
+    hasHover: false,
+    below: { "var(--colorInfo)": ["ayu light", "ayu-mirage light"] },
+  },
 ];
 
-// The cards are drawn in contentColor.
+// The cards, and the panels of the charts, are drawn in contentColor.
 const cardBackground = "var(--contentColor)";
 const cardStylesheet = "card/card.scss";
 const minimumContrast = 4.5;
@@ -145,7 +162,7 @@ describe("contrast of the text of the overview cards", () => {
     expect(cardHoverBackground).toEqual(expect.stringContaining("var(--contentColor)"));
   });
 
-  describe.each(stylesheets)("$file", ({ file, badge, hasHover }) => {
+  describe.each(stylesheets)("$file", ({ file, badge, hasHover, below = {} }) => {
     const source = readStylesheet(file);
     const hoverDeclarations = getHoverDeclarations(source);
     // The custom properties of the card at rest, without the ones the hover sets.
@@ -153,7 +170,7 @@ describe("contrast of the text of the overview cards", () => {
       hoverDeclarations === undefined ? source : source.replace(hoverDeclarations, ""),
     );
     const textColors = [...getTextColors(source)];
-    const badgeRule = getRule(source, badge);
+    const badgeRule = badge === undefined ? undefined : getRule(source, badge);
     // The backgrounds the text is drawn on, each with the custom properties in effect on it.
     const backgrounds = [
       { name: "card", background: cardBackground, properties: customProperties },
@@ -168,10 +185,13 @@ describe("contrast of the text of the overview cards", () => {
           ]),
     ];
 
-    it("has text colors and a badge to check", () => {
+    it(badge === undefined ? "has text colors to check" : "has text colors and a badge to check", () => {
       expect(textColors.length).toBeGreaterThan(0);
-      expect(badgeRule.color).toBeDefined();
-      expect(badgeRule.background).toBeDefined();
+
+      if (badgeRule) {
+        expect(badgeRule.color).toBeDefined();
+        expect(badgeRule.background).toBeDefined();
+      }
     });
 
     it(hasHover ? "sets the colors of its text on the hover" : "has no hover", () => {
@@ -185,21 +205,29 @@ describe("contrast of the text of the overview cards", () => {
         return getContrastRatio(foreground.hex(), behind.hex()) ?? 0;
       };
 
-      it.each(themeVariants)("reaches WCAG AA in $name", ({ theme }) => {
+      it.each(themeVariants)("reaches WCAG AA in $name", ({ name, theme }) => {
         const card = resolveColor(background, theme, properties);
-        const failures = textColors
-          .map((textColor) => ({ textColor, ratio: contrastOn(theme, textColor, card) }))
-          .filter(({ ratio }) => ratio < minimumContrast)
+        const results = textColors.map((textColor) => ({
+          textColor,
+          ratio: contrastOn(theme, textColor, card),
+          known: below[textColor]?.includes(name) ?? false,
+        }));
+        const failures = results
+          .filter(({ ratio, known }) => ratio < minimumContrast && !known)
+          .map(({ textColor, ratio }) => `${textColor}: ${ratio.toFixed(2)}`);
+        const reached = results
+          .filter(({ ratio, known }) => ratio >= minimumContrast && known)
           .map(({ textColor, ratio }) => `${textColor}: ${ratio.toFixed(2)}`);
 
         expect(failures).toEqual([]);
+        expect(reached, "a known miss that reaches AA is to be removed from the list").toEqual([]);
       });
 
-      it.each(themeVariants)("reaches WCAG AA on the badge in $name", ({ theme }) => {
+      it.runIf(badgeRule).each(themeVariants)("reaches WCAG AA on the badge in $name", ({ theme }) => {
         const card = resolveColor(background, theme, properties);
-        const badgeBackground = resolveColor(badgeRule.background ?? "", theme, properties, card);
+        const badgeBackground = resolveColor(badgeRule?.background ?? "", theme, properties, card);
 
-        expect(contrastOn(theme, badgeRule.color ?? "", badgeBackground)).toBeGreaterThanOrEqual(minimumContrast);
+        expect(contrastOn(theme, badgeRule?.color ?? "", badgeBackground)).toBeGreaterThanOrEqual(minimumContrast);
       });
     });
   });

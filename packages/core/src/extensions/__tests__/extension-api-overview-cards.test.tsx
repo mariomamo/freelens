@@ -7,12 +7,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import "@testing-library/jest-dom/vitest";
 import { act, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Chart as ChartJS } from "chart.js";
 import { observer } from "mobx-react";
 import userPreferencesStateInjectable from "../../features/user-preferences/common/state.injectable";
 import { Card as HostCard } from "../../renderer/components/card";
 import {
   CapacityCard as HostCapacityCard,
   StatusCard as HostStatusCard,
+  StatusChart as HostStatusChart,
 } from "../../renderer/components/overview-cards";
 import { renderFor } from "../../renderer/components/test-utils/renderFor";
 import { getDiForUnitTesting } from "../../renderer/getDiForUnitTesting";
@@ -37,10 +39,11 @@ describe("overview cards in the extension API", () => {
   });
 
   describe("Renderer.Component", () => {
-    it("exports the cards the overviews render, and the card they are drawn on", () => {
+    it("exports the cards and the chart the overviews render, and the card they are drawn on", () => {
       expect(Renderer.Component.Card).toBe(HostCard);
       expect(Renderer.Component.CapacityCard).toBe(HostCapacityCard);
       expect(Renderer.Component.StatusCard).toBe(HostStatusCard);
+      expect(Renderer.Component.StatusChart).toBe(HostStatusChart);
     });
 
     it("renders a card with the content of an extension", async () => {
@@ -128,6 +131,44 @@ describe("overview cards in the extension API", () => {
 
       expect(onClick).toHaveBeenCalledTimes(1);
     });
+
+    it("renders a status chart from the statuses of an extension", async () => {
+      const { StatusChart } = Renderer.Component;
+      const onClick = vi.fn();
+
+      document.documentElement.style.setProperty("--colorOk", "#4caf50");
+
+      const { container } = render(
+        <StatusChart
+          title="Releases"
+          statuses={[
+            { label: "Ready", count: 3, color: "var(--colorOk)", tone: "healthy" },
+            { label: "Stalled", count: 1, color: "rgb(255, 0, 0)", tone: "failing" },
+          ]}
+          onClick={onClick}
+          data-testid="releases"
+        />,
+      );
+      const canvas = container.querySelector("canvas");
+      const chart = canvas ? ChartJS.getChart(canvas) : undefined;
+
+      document.documentElement.style.removeProperty("--colorOk");
+
+      expect(screen.getByTestId("releases")).toHaveClass("StatusChart");
+      expect(screen.getByTestId("releases-title")).toHaveTextContent("Releases (4)");
+      expect(screen.getByTestId("releases-status-ready")).toHaveTextContent("Ready: 3");
+      expect(screen.getByTestId("releases-status-stalled")).toHaveTextContent("Stalled: 1");
+      expect(chart?.data.datasets[0].data).toEqual([0, 3, 1]);
+      expect(chart?.data.datasets[0].backgroundColor).toEqual([
+        expect.any(String),
+        "rgb(76, 175, 80)",
+        "rgb(255, 0, 0)",
+      ]);
+
+      await userEvent.click(screen.getByRole("button", { name: "Releases (4)" }));
+
+      expect(onClick).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("Common.App.Preferences.getOverviewStyle()", () => {
@@ -159,6 +200,28 @@ describe("overview cards in the extension API", () => {
       });
 
       expect(screen.getByTestId("overview")).toHaveTextContent("charts");
+    });
+
+    it("chooses between the status card and the status chart for the same props", () => {
+      const { StatusCard, StatusChart } = Renderer.Component;
+      const props: Renderer.Component.StatusChartProps = {
+        title: "Releases",
+        statuses: [{ label: "Ready", count: 3, color: "var(--colorOk)", tone: "healthy" }],
+        "data-testid": "releases",
+      };
+      const Overview = observer(() =>
+        Common.App.Preferences.getOverviewStyle() === "cards" ? <StatusCard {...props} /> : <StatusChart {...props} />,
+      );
+
+      render(<Overview />);
+
+      expect(screen.getByTestId("releases")).toHaveClass("StatusChart");
+
+      act(() => {
+        state.overviewStyle = "cards";
+      });
+
+      expect(screen.getByTestId("releases")).toHaveClass("StatusCard");
     });
   });
 });

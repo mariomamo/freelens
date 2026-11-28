@@ -149,8 +149,9 @@ export * from "../../renderer/components/no-items";
 // props, not the hook that keeps the order or the drag-and-drop library.
 export { OrderableItem, type OrderableItemProps } from "../../renderer/components/orderable-list/orderable-item";
 export { OrderableList, type OrderableListProps } from "../../renderer/components/orderable-list/orderable-list";
-// Explicit rather than a star export: the contract is the two cards and their
-// props, whatever else the module comes to hold.
+// Explicit rather than a star export: the contract is the two cards, the chart
+// that takes the props of the status card, and their props, whatever else the
+// module comes to hold.
 export {
   CapacityCard,
   type CapacityCardLabels,
@@ -159,6 +160,8 @@ export {
   type StatusCardProps,
   type StatusCardStatus,
   type StatusCardTone,
+  StatusChart,
+  type StatusChartProps,
 } from "../../renderer/components/overview-cards";
 export * from "../../renderer/components/path-picker";
 export * from "../../renderer/components/radio";

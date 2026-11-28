@@ -195,9 +195,9 @@ export type RendererVirtualListRefTakesItsAlign = Holds<
   Parameters<RendererVirtualListRef["scrollToItem"]>[1] extends RendererVirtualListAlign ? true : false
 >;
 
-// The card the host draws its cards on, the overview cards and their props, the
-// contract of their own that both overviews of the host render with, and the
-// preference that chooses between them and the charts.
+// The card the host draws its cards on, the overview cards, the status chart and
+// their props, the contract of their own that both overviews of the host render
+// with, and the preference that chooses between the cards and the charts.
 export type RendererCardProps = Renderer.Component.CardProps;
 export type RendererCardTakesItsProps = Holds<
   Parameters<typeof Renderer.Component.Card>[0] extends RendererCardProps ? true : false
@@ -212,6 +212,23 @@ export type RendererCapacityCardTakesItsProps = Holds<
 >;
 export type RendererStatusCardTakesItsProps = Holds<
   Parameters<typeof Renderer.Component.StatusCard>[0] extends RendererStatusCardProps ? true : false
+>;
+// The status chart takes the props of the status card, so that the same data
+// renders as either, and the two props grow together.
+export type RendererStatusChartProps = Renderer.Component.StatusChartProps;
+export type RendererStatusChartPropsAreStatusCardProps = Holds<
+  RendererStatusChartProps extends RendererStatusCardProps
+    ? RendererStatusCardProps extends RendererStatusChartProps
+      ? true
+      : false
+    : false
+>;
+export type RendererStatusChartTakesItsProps = Holds<
+  Parameters<typeof Renderer.Component.StatusChart>[0] extends RendererStatusChartProps
+    ? RendererStatusChartProps extends Parameters<typeof Renderer.Component.StatusChart>[0]
+      ? true
+      : false
+    : false
 >;
 export type CommonOverviewStyleIsCardsOrCharts = Holds<
   ReturnType<typeof Common.App.Preferences.getOverviewStyle> extends "cards" | "charts"

@@ -9,6 +9,7 @@ import { Icon } from "@freelensapp/icon";
 import { cssNames } from "@freelensapp/utilities";
 import { useRef } from "react";
 import { Card } from "../card";
+import { isShown, keysOf, partTestId, sumOf, toTestId } from "./status-keys";
 
 import type { ReactNode } from "react";
 
@@ -53,31 +54,6 @@ export interface StatusCardProps {
 }
 
 const percentOf = (value: number, total: number) => (total > 0 ? `${Math.round((value / total) * 100)}%` : "—");
-
-const sumOf = (statuses: readonly StatusCardStatus[]) => statuses.reduce((sum, status) => sum + status.count, 0);
-
-const toTestId = (label: string) => label.toLowerCase().replace(/\s+/g, "-");
-
-const partTestId = (testId: string | undefined, part: string) => (testId ? `${testId}-${part}` : undefined);
-
-/**
- * The React key of each status: its label, so that the row and the segment of a status keep their elements while
- * the statuses before them come and go. The labels of a card are meant to be distinct; a repeated one gets the
- * number of its occurrence, so that its keys stay unique.
- */
-const keysOf = (statuses: readonly StatusCardStatus[]) => {
-  const seen = new Map<string, number>();
-
-  return statuses.map(({ label }) => {
-    const occurrence = seen.get(label) ?? 0;
-
-    seen.set(label, occurrence + 1);
-
-    return occurrence === 0 ? label : `${label}\n${occurrence}`;
-  });
-};
-
-const isShown = (status: StatusCardStatus) => Number.isFinite(status.count) && status.count > 0;
 
 /** A row of the legend and its segment of the bar. */
 interface StatusRow {
